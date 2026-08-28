@@ -1,0 +1,64 @@
+{
+	"$schema": "./node_modules/oxlint/configuration_schema.json",
+	"options": {
+		"typeAware": true
+	},
+	"plugins": ["typescript", "import", "promise", "unicorn", "node"],
+	"rules": {
+		"typescript/no-floating-promises": "error",
+		"typescript/no-misused-promises": [
+			"error",
+			{
+				"checksVoidReturn": {
+					"arguments": false
+				}
+			}
+		],
+		"typescript/await-thenable": "error",
+		"typescript/only-throw-error": "error",
+
+		"typescript/no-unused-vars": [
+			"error",
+			{
+				"argsIgnorePattern": "^_",
+				"caughtErrorsIgnorePattern": "^_",
+				"varsIgnorePattern": "^_"
+			}
+		],
+		"typescript/consistent-type-imports": [
+			"error",
+			{
+				"prefer": "type-imports",
+				"fixStyle": "inline-type-imports"
+			}
+		],
+		"typescript/no-import-type-side-effects": "error",
+
+		"eqeqeq": [
+			"error",
+			"always",
+			{
+				"null": "ignore"
+			}
+		],
+		"prefer-const": "error",
+		"object-shorthand": "error",
+		"prefer-template": "error",
+		"no-unneeded-ternary": "error",
+
+		"no-console": [
+			"warn",
+			{
+				"allow": ["warn", "error"]
+			}
+		]
+	},
+	"overrides": [
+		{
+			"files": ["**/*.test.ts", "**/*.spec.ts"],
+			"rules": {
+				"typescript/no-non-null-assertion": "off"
+			}
+		}
+	]
+}

@@ -1,0 +1,49 @@
+{
+	"name": "medical/backend",
+	"version": "1.0.0",
+	"main": "index.js",
+	"type": "module",
+	"scripts": {
+		"dev": "tsx watch src/index.ts",
+		"build": "tsup src/index.ts --format esm --clean",
+		"start": "node dist/index.js",
+		"lint": "oxlint --type-aware",
+		"lint:fix": "oxlint --type-aware --fix",
+		"typecheck": "tsc --noEmit",
+		"knex:migrate:make": "NODE_OPTIONS='--import tsx' knex --knexfile ./src/database/knexfile.ts migrate:make",
+		"knex:migrate:latest": "NODE_OPTIONS='--import tsx' knex --knexfile ./src/database/knexfile.ts migrate:latest",
+		"knex:migrate:rollback": "NODE_OPTIONS='--import tsx' knex --knexfile ./src/database/knexfile.ts migrate:rollback",
+		"knex:migrate:list": "NODE_OPTIONS='--import tsx' knex --knexfile ./src/database/knexfile.ts migrate:list",
+		"knex:migrate:up": "NODE_OPTIONS='--import tsx' knex --knexfile ./src/database/knexfile.ts migrate:up",
+		"knex:migrate:down": "NODE_OPTIONS='--import tsx' knex --knexfile ./src/database/knexfile.ts migrate:down"
+	},
+	"author": "Dominik",
+	"license": "ISC",
+	"dependencies": {
+		"cookie-parser": "^1.4.7",
+		"cors": "^2.8.6",
+		"dotenv": "^17.4.2",
+		"express": "^5.2.1",
+		"helmet": "^8.3.0",
+		"ioredis": "^5.11.1",
+		"knex": "^3.3.0",
+		"pg": "^8.22.0",
+		"zod": "^4.4.3"
+	},
+	"devDependencies": {
+		"@eslint/js": "^9.39.5",
+		"@types/cookie-parser": "^1.4.10",
+		"@types/cors": "^2.8.19",
+		"@types/express": "^5.0.6",
+		"@types/node": "^26.1.1",
+		"eslint": "^9.39.5",
+		"eslint-plugin-import-x": "^4.17.1",
+		"globals": "^17.7.0",
+		"oxlint": "^1.74.0",
+		"oxlint-tsgolint": "^0.24.0",
+		"tsc-alias": "^1.9.1",
+		"tsup": "^8.5.1",
+		"tsx": "^4.23.1",
+		"typescript": "^7.0.2"
+	}
+}
