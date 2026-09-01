@@ -22,4 +22,6 @@ export enum AccountGroup {
 export enum AccountPermission {
 	READ_ACCOUNTS = "read_accounts",
 	WRITE_ACCOUNTS = "write_accounts",
+
+	ACCESS_DASHBOARD = "access_dashboard",
 }

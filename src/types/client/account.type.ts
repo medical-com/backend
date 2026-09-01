@@ -1,3 +1,9 @@
-import { Account } from "@/database/types";
-
-export type ClientAccount = Omit<Account, "password_hash" | "last_login_at" | "updated_at">;
+export type ClientAccount = {
+	id: string;
+	patientId: string;
+	email: string;
+	group: string;
+	emailVerified: boolean;
+	createdAt: Date;
+	permissions?: string[];
+};
