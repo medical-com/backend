@@ -10,7 +10,7 @@ import type { AuthPaths } from "./types/auth.types";
 const router = express.Router() as TypedRouter<AuthPaths>;
 export default class AuthModule {
 	constructor(readonly modules: Modules) {
-		const service = new AuthService(this.modules.userRepository);
+		const service = new AuthService(this.modules.accountRepository, this.modules.patientRepository);
 		const controller = new AuthController(service);
 
 		router.post("/auth/register", (req, res) => controller.onRegister(req, res));
