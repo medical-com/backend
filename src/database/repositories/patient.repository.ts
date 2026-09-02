@@ -1,8 +1,8 @@
 import db from "..";
 
 import { DatabaseError } from "@/core/errors/database-error";
-import { Knex } from "knex";
-import { Patient } from "../types";
+import type { Knex } from "knex";
+import type { Patient } from "../types";
 
 export default class PatientRepository {
 	async findById(data: { id: string }, trx?: Knex.Transaction): Promise<Patient | undefined> {

@@ -1,10 +1,11 @@
-import AccountRepository from "@/database/repositories/account.repository";
+import type AccountRepository from "@/database/repositories/account.repository";
+import type PatientRepository from "@/database/repositories/patient.repository";
+import type { Account } from "@/database/types";
 
 import { AppError } from "@/core/errors/app-error";
 import { hashPassword, verifyPassword } from "@/core/security/password";
-import { createSession, destroySession } from "../../core/security/session.store";
-import { Account, AccountGroup } from "@/database/types";
-import PatientRepository from "@/database/repositories/patient.repository";
+import { createSession, destroySession } from "@/core/security/session.store";
+import { AccountGroup } from "@/database/types";
 
 export default class AuthService {
 	constructor(

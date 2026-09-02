@@ -1,7 +1,7 @@
 import db from "..";
 
-import { Knex } from "knex";
-import { Account, AccountGroup } from "../types";
+import type { Knex } from "knex";
+import type { Account, AccountGroup } from "../types";
 import { DatabaseError } from "@/core/errors/database-error";
 
 export default class AccountRepository {

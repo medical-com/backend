@@ -1,4 +1,4 @@
-import { ClientAccount } from "@/types/client/account.type";
+import type { ClientAccount } from "@/types/client/account.type";
 import type { Account } from "../types";
 
 export const toClientAccount = (account: Account): ClientAccount => {
