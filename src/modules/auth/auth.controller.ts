@@ -30,6 +30,7 @@ export default class AuthController {
 		res.json({ account: toClientAccount(account) });
 	}
 
+	@RequireAuth()
 	async onLogout(req: express.Request, res: express.Response) {
 		const sessionId: string | undefined = req.cookies?.[SESSION_COOKIE_NAME];
 		if (sessionId) await this.service.logout({ sessionId });
