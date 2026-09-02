@@ -1,11 +1,11 @@
 import type { RequestHandler } from "express";
-import UserRepository from "@/database/repositories/user.repository";
 import { getSession, SESSION_COOKIE_NAME } from "@/core/security/session.store";
+import AccountRepository from "@/database/repositories/account.repository";
 
-const userRepository = new UserRepository();
+const accountRepository = new AccountRepository();
 
-// Populates req.user when a valid session cookie is present. Does not reject
-// unauthenticated requests - pair with requireAuth on routes that need a user.
+// Populates req.account when a valid session cookie is present. Does not reject
+// unauthenticated requests - pair with requireAuth on routes that need an account.
 export const attachUser: RequestHandler = async (req, _res, next) => {
 	const sessionId: string | undefined = req.cookies?.[SESSION_COOKIE_NAME];
 
@@ -15,7 +15,7 @@ export const attachUser: RequestHandler = async (req, _res, next) => {
 	}
 
 	const session = await getSession(sessionId);
-	if (session) req.user = await userRepository.findById({ id: session.userId });
+	if (session) req.account = await accountRepository.findById({ id: session.userId });
 
 	next();
 };

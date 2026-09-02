@@ -1,9 +1,9 @@
-import type { User } from "@/database/types";
+import type { Account } from "@/database/types";
 
 declare global {
 	namespace Express {
 		interface Request {
-			user?: User;
+			account?: Account;
 		}
 	}
 }

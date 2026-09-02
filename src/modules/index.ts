@@ -1,13 +1,15 @@
 import type express from "express";
-import UserRepository from "@/database/repositories/user.repository";
 import type { TypedRouter } from "@/types/api-paths.type";
 import AuthModule from "./auth/auth.module";
 import HealthModule from "./health/health.module";
+import AccountRepository from "@/database/repositories/account.repository";
+import PatientRepository from "@/database/repositories/patient.repository";
 
 export default class Modules {
 	app: express.Express;
 
-	userRepository: UserRepository;
+	accountRepository: AccountRepository;
+	patientRepository: PatientRepository;
 
 	healthModule: HealthModule;
 	authModule: AuthModule;
@@ -15,7 +17,8 @@ export default class Modules {
 	constructor(app: express.Express) {
 		this.app = app;
 
-		this.userRepository = new UserRepository();
+		this.accountRepository = new AccountRepository();
+		this.patientRepository = new PatientRepository();
 
 		this.healthModule = new HealthModule(this);
 		this.authModule = new AuthModule(this);

@@ -6,7 +6,7 @@ type HandlerMethod = (req: express.Request, res: express.Response, ...args: any[
 export function RequireAuth() {
 	return (target: HandlerMethod, _context: ClassMethodDecoratorContext) => {
 		return function (this: unknown, req: express.Request, res: express.Response, ...args: any[]) {
-			if (!req.user) throw new AppError("Authentication required", 401);
+			if (!req.account) throw new AppError("Authentication required", 401);
 
 			return target.call(this, req, res, ...args);
 		};
