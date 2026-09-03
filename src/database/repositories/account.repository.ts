@@ -1,7 +1,7 @@
 import db from "..";
 
 import type { Knex } from "knex";
-import type { Account, AccountGroup } from "../types";
+import type { Account, AccountRole, Person } from "../types";
 import { DatabaseError } from "@/core/errors/database-error";
 
 export default class AccountRepository {
@@ -21,6 +21,57 @@ export default class AccountRepository {
 		}
 	}
 
+	async findWithPerson(data: { accountId: string }, trx?: Knex.Transaction): Promise<Account & { person: Person }> {
+		const account = await (trx || db)("accounts as a")
+			.select(
+				"a.id",
+				"a.email",
+				"a.role",
+				"a.status",
+				"a.email_verified",
+				"a.last_login_at",
+				"a.password_hash",
+
+				"p.id as person_id",
+				"p.first_name",
+				"p.last_name",
+				"p.phone",
+				"p.pesel",
+				"p.date_of_birth",
+				"p.created_at as person_created_at",
+				"p.updated_at as person_updated_at",
+			)
+			.join("persons as p", "p.id", "a.person_id")
+			.where("a.id", data.accountId)
+			.first();
+		if (!account) throw new DatabaseError("Account not found");
+
+		const {
+			person_id,
+			first_name,
+			last_name,
+			phone,
+			pesel,
+			date_of_birth,
+			person_created_at,
+			person_updated_at,
+			...accountData
+		} = account;
+
+		return {
+			...accountData,
+			person: {
+				id: person_id,
+				first_name,
+				last_name,
+				phone,
+				pesel,
+				date_of_birth,
+				created_at: person_created_at,
+				updated_at: person_updated_at,
+			},
+		};
+	}
 	async insert(
 		data: Omit<Account, "id" | "last_login_at" | "created_at" | "updated_at">,
 		trx?: Knex.Transaction,
@@ -37,10 +88,10 @@ export default class AccountRepository {
 		}
 	}
 
-	async updateGroup(data: { id: string; group: AccountGroup }, trx?: Knex.Transaction): Promise<Account> {
+	async updateRole(data: { id: string; role: AccountRole }, trx?: Knex.Transaction): Promise<Account> {
 		try {
 			const [account] = await (trx || db)<Account>("public.accounts")
-				.update({ group: data.group })
+				.update({ role: data.role })
 				.where({ id: data.id })
 				.returning("*");
 			if (!account) throw new DatabaseError(new Error("Update did not return a row"));

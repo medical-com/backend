@@ -1,15 +1,30 @@
+import type { ClientAccount } from "@/types/client/account.type";
 import { z } from "zod";
 
-export const registerSchema = z.object({
+export const RegisterRequestSchema = z.object({
 	firstName: z.string().min(1),
 	lastName: z.string().min(1),
 	email: z.email(),
-	dateOfBirth: z.string().min(1),
+	pesel: z.string().length(11).regex(/^\d+$/),
+	dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
 	phoneNumber: z.string().min(1),
 	password: z.string().min(8),
 });
+export type RegisterRequest = z.infer<typeof RegisterRequestSchema>;
+export type RegisterResponse = {
+	success: boolean;
+};
 
-export const loginSchema = z.object({
-	email: z.string().min(1),
+export const LoginRequestSchema = z.object({
+	email: z.email(),
 	password: z.string().min(1),
 });
+export type LoginRequest = z.infer<typeof LoginRequestSchema>;
+export type LoginResponse = {
+	account: ClientAccount;
+	token?: string;
+};
+
+export type MeResponse = {
+	data: ClientAccount;
+};

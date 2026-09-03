@@ -1,9 +1,12 @@
 export type ClientAccount = {
 	id: string;
-	patientId: string;
+	firstName: string;
+	lastName: string;
+	pesel: string;
 	email: string;
-	group: string;
 	emailVerified: boolean;
+	phone: string;
+	dateOfBirth: Date;
+	role: string;
 	createdAt: Date;
-	permissions?: string[];
 };
