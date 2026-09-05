@@ -28,6 +28,7 @@
 		"ioredis": "^5.11.1",
 		"knex": "^3.3.0",
 		"pg": "^8.22.0",
+		"resend": "^6.26.0",
 		"zod": "^4.4.3"
 	},
 	"devDependencies": {

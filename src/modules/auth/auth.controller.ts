@@ -5,8 +5,8 @@ import { AppError } from "@/core/errors/app-error";
 import { RequireAuth } from "@/core/decorators/require-auth";
 import { ValidateBody } from "@/core/decorators/validate-body";
 import { SESSION_COOKIE_NAME, SESSION_COOKIE_OPTIONS } from "@/core/security/session.store";
-import { LoginRequestSchema, RegisterRequestSchema } from "./types/auth.schema";
-import type { LoginResponse, RegisterResponse, MeResponse } from "./types/auth.schema";
+import { ConfirmEmailRequestSchema, LoginRequestSchema, RegisterRequestSchema } from "./types/auth.schema";
+import type { ConfirmEmailResponse, LoginResponse, RegisterResponse, MeResponse } from "./types/auth.schema";
 
 export default class AuthController {
 	constructor(readonly service: AuthService) {}
@@ -46,5 +46,13 @@ export default class AuthController {
 
 		const result = await this.service.me({ accountId: account.id });
 		res.json({ data: result } as MeResponse);
+	}
+
+	@ValidateBody(ConfirmEmailRequestSchema)
+	async onConfirmEmail(req: express.Request, res: express.Response) {
+		const { token } = req.body;
+		const success = await this.service.confirmEmail({ token });
+
+		res.json({ success } as ConfirmEmailResponse);
 	}
 }

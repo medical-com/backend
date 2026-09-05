@@ -28,3 +28,11 @@ export type LoginResponse = {
 export type MeResponse = {
 	data: ClientAccount;
 };
+
+export const ConfirmEmailRequestSchema = z.object({
+	token: z.string().length(6).regex(/^\d+$/),
+});
+export type ConfirmEmailRequest = z.infer<typeof ConfirmEmailRequestSchema>;
+export type ConfirmEmailResponse = {
+	success: boolean;
+};

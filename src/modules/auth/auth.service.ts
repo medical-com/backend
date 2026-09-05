@@ -1,19 +1,16 @@
 import db from "@/database";
-import type AccountRepository from "@/database/repositories/account.repository";
-import type PersonRepository from "@/database/repositories/person.repository";
 
 import { AppError } from "@/core/errors/app-error";
 import { hashPassword, verifyPassword } from "@/core/security/password";
 import { createSession, destroySession } from "@/core/security/session.store";
 import { AccountRole, AccountStatus } from "@/database/types";
 import type { ClientAccount } from "@/types/client/account.type";
+import { accountRepository, personRepository } from "@/database/repositories";
+import redis from "@/core/redis";
+import { Knex } from "knex";
+import { mailService } from "@/core/mail";
 
 export default class AuthService {
-	constructor(
-		readonly accountRepository: AccountRepository,
-		readonly pearsonRepository: PersonRepository,
-	) {}
-
 	async register(data: {
 		firstName: string;
 		lastName: string;
@@ -24,14 +21,14 @@ export default class AuthService {
 		password: string;
 	}): Promise<boolean> {
 		const account = await db.transaction(async (trx) => {
-			const personWithPeselExists = await this.pearsonRepository.findByPesel({ pesel: data.pesel }, trx);
+			const personWithPeselExists = await personRepository.findByPesel({ pesel: data.pesel }, trx);
 			if (personWithPeselExists) throw new Error("Person with this pesel already exists");
-			const personWithEmailExists = await this.pearsonRepository.findByEmail({ email: data.email }, trx);
+			const personWithEmailExists = await personRepository.findByEmail({ email: data.email }, trx);
 			if (personWithEmailExists) throw new Error("Person with this email already exists");
-			const personWithPhoneExists = await this.pearsonRepository.findByPhone({ phone: data.phoneNumber }, trx);
+			const personWithPhoneExists = await personRepository.findByPhone({ phone: data.phoneNumber }, trx);
 			if (personWithPhoneExists) throw new Error("Person with this phone number already exists");
 
-			const person = await this.pearsonRepository.insert(
+			const person = await personRepository.insert(
 				{
 					first_name: data.firstName,
 					last_name: data.lastName,
@@ -44,7 +41,7 @@ export default class AuthService {
 			);
 
 			const passwordHash = await hashPassword(data.password);
-			const account = await this.accountRepository.insert(
+			const account = await accountRepository.insert(
 				{
 					person_id: person.id,
 					email: data.email,
@@ -56,6 +53,10 @@ export default class AuthService {
 				trx,
 			);
 
+			const token = await this.createEmailVerificationToken({ accountId: account.id }, trx);
+			if (!token) throw new Error("Failed to create email verification token");
+			await mailService.sendEmailVerification({ email: account.email, token });
+
 			return account;
 		});
 
@@ -63,14 +64,16 @@ export default class AuthService {
 	}
 
 	async login(data: { email: string; password: string }): Promise<{ account: ClientAccount; sessionId: string }> {
-		const exist = await this.accountRepository.findByEmail({ email: data.email });
+		const exist = await accountRepository.findByEmail({ email: data.email });
 		if (!exist || !(await verifyPassword(data.password, exist.password_hash)))
 			throw new AppError("Invalid email or password", 401);
 
-		const account = await this.accountRepository.findWithPerson({ accountId: exist.id });
+		if (!exist.email_verified) throw new AppError("Please verify your email before logging in", 403);
+
+		const account = await accountRepository.findWithPerson({ accountId: exist.id });
 		if (!account) throw new AppError("Account not found", 404);
 
-		await this.accountRepository.updateLastLoginAt({ id: account.id });
+		await accountRepository.updateLastLoginAt({ id: account.id });
 
 		const sessionId = await createSession(account.id);
 		const clientAccount: ClientAccount = {
@@ -96,7 +99,7 @@ export default class AuthService {
 	}
 
 	async me(data: { accountId: string }): Promise<ClientAccount> {
-		const account = await this.accountRepository.findWithPerson({ accountId: data.accountId });
+		const account = await accountRepository.findWithPerson({ accountId: data.accountId });
 		if (!account) throw new AppError("Account not found", 404);
 
 		return {
@@ -111,5 +114,31 @@ export default class AuthService {
 			role: account.role,
 			createdAt: account.created_at,
 		};
+	}
+
+	async createEmailVerificationToken(data: { accountId: string }, trx?: Knex.Transaction): Promise<string> {
+		const account = await accountRepository.findById({ id: data.accountId }, trx);
+		if (!account) throw new AppError("Account not found", 404);
+		if (account.email_verified) throw new AppError("Email is already verified", 400);
+
+		const token = Math.floor(100000 + Math.random() * 900000).toString();
+		await redis.set(`email_verification_token:${token}`, account.id, "EX", 60 * 60); // 1 hour expiration
+
+		return token;
+	}
+
+	async confirmEmail(data: { token: string }): Promise<boolean> {
+		const accountId = await redis.get(`email_verification_token:${data.token}`);
+		if (!accountId) throw new AppError("Invalid or expired verification token", 400);
+
+		const account = await accountRepository.findById({ id: accountId });
+		if (!account) throw new AppError("Account not found", 404);
+		if (account.email_verified) throw new AppError("Email is already verified", 400);
+
+		await redis.del(`email_verification_token:${data.token}`);
+
+		const result = await accountRepository.updateEmailVerified({ id: account.id, emailVerified: true });
+
+		return !!result;
 	}
 }

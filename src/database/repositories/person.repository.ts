@@ -4,7 +4,7 @@ import type { Knex } from "knex";
 import type { Person } from "../types";
 import { DatabaseError } from "@/core/errors/database-error";
 
-export default class PersonRepository {
+export class PersonRepository {
 	async findById(data: { id: string }, trx?: Knex.Transaction): Promise<Person | undefined> {
 		try {
 			return await (trx || db)<Person>("public.persons").select("*").where({ id: data.id }).first();
