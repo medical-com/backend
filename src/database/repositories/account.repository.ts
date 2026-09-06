@@ -129,4 +129,18 @@ export class AccountRepository {
 			throw new DatabaseError(err);
 		}
 	}
+
+	async updatePassword(data: { id: string; passwordHash: string }, trx?: Knex.Transaction): Promise<Account> {
+		try {
+			const [account] = await (trx || db)<Account>("public.accounts")
+				.update({ password_hash: data.passwordHash })
+				.where({ id: data.id })
+				.returning("*");
+			if (!account) throw new DatabaseError(new Error("Update did not return a row"));
+
+			return account;
+		} catch (err) {
+			throw new DatabaseError(err);
+		}
+	}
 }

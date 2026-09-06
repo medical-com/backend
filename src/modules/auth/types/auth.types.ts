@@ -6,5 +6,7 @@ export const paths = {
 	logout: "/auth/logout",
 	me: "/auth/me",
 	confirmEmail: "/auth/confirm-email",
+	forgotPassword: "/auth/forgot-password",
+	resetPassword: "/auth/reset-password",
 } as const;
 export type AuthPaths = Flatten<typeof paths>;

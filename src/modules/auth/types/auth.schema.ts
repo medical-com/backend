@@ -36,3 +36,20 @@ export type ConfirmEmailRequest = z.infer<typeof ConfirmEmailRequestSchema>;
 export type ConfirmEmailResponse = {
 	success: boolean;
 };
+
+export const ForgotPasswordRequestSchema = z.object({
+	email: z.email(),
+});
+export type ForgotPasswordRequest = z.infer<typeof ForgotPasswordRequestSchema>;
+export type ForgotPasswordResponse = {
+	success: boolean;
+};
+
+export const ResetPasswordRequestSchema = z.object({
+	token: z.uuid(),
+	password: z.string().min(8),
+});
+export type ResetPasswordRequest = z.infer<typeof ResetPasswordRequestSchema>;
+export type ResetPasswordResponse = {
+	success: boolean;
+};

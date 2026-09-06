@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import db from "@/database";
 
 import { AppError } from "@/core/errors/app-error";
@@ -138,6 +140,42 @@ export default class AuthService {
 		await redis.del(`email_verification_token:${data.token}`);
 
 		const result = await accountRepository.updateEmailVerified({ id: account.id, emailVerified: true });
+
+		return !!result;
+	}
+
+	async createPasswordResetToken(data: { accountId: string }): Promise<string> {
+		const account = await accountRepository.findById({ id: data.accountId });
+		if (!account) throw new AppError("Account not found", 404);
+
+		const token = randomUUID();
+		await redis.set(`password_reset_token:${token}`, account.id, "EX", 60 * 60); // 1 hour expiration
+
+		return token;
+	}
+
+	async forgotPassword(data: { email: string }): Promise<boolean> {
+		const account = await accountRepository.findByEmail({ email: data.email });
+		if (!account) throw new AppError("Account not found", 404);
+
+		const token = await this.createPasswordResetToken({ accountId: account.id });
+		if (!token) throw new Error("Failed to create password reset token");
+		await mailService.sendPasswordReset({ email: account.email, token });
+
+		return true;
+	}
+
+	async resetPassword(data: { token: string; password: string }): Promise<boolean> {
+		const accountId = await redis.get(`password_reset_token:${data.token}`);
+		if (!accountId) throw new AppError("Invalid or expired reset token", 400);
+
+		const account = await accountRepository.findById({ id: accountId });
+		if (!account) throw new AppError("Account not found", 404);
+
+		await redis.del(`password_reset_token:${data.token}`);
+
+		const passwordHash = await hashPassword(data.password);
+		const result = await accountRepository.updatePassword({ id: account.id, passwordHash });
 
 		return !!result;
 	}

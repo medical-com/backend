@@ -5,8 +5,21 @@ import { AppError } from "@/core/errors/app-error";
 import { RequireAuth } from "@/core/decorators/require-auth";
 import { ValidateBody } from "@/core/decorators/validate-body";
 import { SESSION_COOKIE_NAME, SESSION_COOKIE_OPTIONS } from "@/core/security/session.store";
-import { ConfirmEmailRequestSchema, LoginRequestSchema, RegisterRequestSchema } from "./types/auth.schema";
-import type { ConfirmEmailResponse, LoginResponse, RegisterResponse, MeResponse } from "./types/auth.schema";
+import {
+	ConfirmEmailRequestSchema,
+	ForgotPasswordRequestSchema,
+	LoginRequestSchema,
+	RegisterRequestSchema,
+	ResetPasswordRequestSchema,
+} from "./types/auth.schema";
+import type {
+	ConfirmEmailResponse,
+	ForgotPasswordResponse,
+	LoginResponse,
+	RegisterResponse,
+	MeResponse,
+	ResetPasswordResponse,
+} from "./types/auth.schema";
 
 export default class AuthController {
 	constructor(readonly service: AuthService) {}
@@ -54,5 +67,21 @@ export default class AuthController {
 		const success = await this.service.confirmEmail({ token });
 
 		res.json({ success } as ConfirmEmailResponse);
+	}
+
+	@ValidateBody(ForgotPasswordRequestSchema)
+	async onForgotPassword(req: express.Request, res: express.Response) {
+		const { email } = req.body;
+		const success = await this.service.forgotPassword({ email });
+
+		res.json({ success } as ForgotPasswordResponse);
+	}
+
+	@ValidateBody(ResetPasswordRequestSchema)
+	async onResetPassword(req: express.Request, res: express.Response) {
+		const { token, password } = req.body;
+		const success = await this.service.resetPassword({ token, password });
+
+		res.json({ success } as ResetPasswordResponse);
 	}
 }

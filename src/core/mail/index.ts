@@ -45,6 +45,21 @@ class MailService {
 		await this.sendEmail({ to: email, subject, html });
 	}
 
+	async sendPasswordReset(options: { email: string; token: string }): Promise<void> {
+		const { email, token } = options;
+
+		const link = `${config.clientUrl}/auth/reset-password?token=${token}`;
+
+		const subject = "Password Reset";
+		const html = `
+			<p>We received a request to reset your password. Click the link below to choose a new one:</p>
+			<p><a href="${link}">${link}</a></p>
+			<p>This link will expire in 1 hour. If you didn't request this, you can ignore this email.</p>
+		`;
+
+		await this.sendEmail({ to: email, subject, html });
+	}
+
 	private throwIfDisabled(): void {
 		if (config.mail.resend.disabled) {
 			this.logger.warn("Mail sending is disabled — skipping mail operation.");

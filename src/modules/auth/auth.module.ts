@@ -19,6 +19,8 @@ export default class AuthModule {
 		router.post("/auth/logout", (req, res) => controller.onLogout(req, res));
 		router.get("/auth/me", (req, res) => controller.onMe(req, res));
 		router.post("/auth/confirm-email", (req, res) => controller.onConfirmEmail(req, res));
+		router.post("/auth/forgot-password", (req, res) => controller.onForgotPassword(req, res));
+		router.post("/auth/reset-password", (req, res) => controller.onResetPassword(req, res));
 
 		this.modules.useRouter(router);
 	}

@@ -23,6 +23,7 @@ const env = result.data;
 export const config = {
 	env: env.NODE_ENV,
 	port: env.PORT,
+	clientUrl: env.CLIENT_URL,
 
 	database: {
 		host: env.DB_HOST,
