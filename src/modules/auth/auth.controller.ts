@@ -37,10 +37,13 @@ export default class AuthController {
 	async onLogin(req: express.Request, res: express.Response<LoginResponse>) {
 		if (req.account) throw new AppError("Already logged in");
 
-		const { account, sessionId } = await this.service.login({ email: req.body.email, password: req.body.password });
+		const { clientAccount, sessionId } = await this.service.login({
+			email: req.body.email,
+			password: req.body.password,
+		});
 
 		res.cookie(SESSION_COOKIE_NAME, sessionId, SESSION_COOKIE_OPTIONS);
-		res.json({ account, token: sessionId });
+		res.json({ clientAccount });
 	}
 
 	@RequireAuth()
@@ -52,13 +55,12 @@ export default class AuthController {
 		res.status(204).end();
 	}
 
-	@RequireAuth()
 	async onMe(req: express.Request, res: express.Response<MeResponse>) {
 		const account = req.account;
-		if (!account) throw new AppError("Authentication required", 401);
+		if (!account) return res.json({ data: null });
 
-		const result = await this.service.me({ accountId: account.id });
-		res.json({ data: result });
+		const data = await this.service.me({ accountId: account.id });
+		res.json({ data });
 	}
 
 	@ValidateBody(ConfirmEmailRequestSchema)

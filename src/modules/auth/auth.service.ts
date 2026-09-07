@@ -65,7 +65,10 @@ export default class AuthService {
 		return !!account;
 	}
 
-	async login(data: { email: string; password: string }): Promise<{ account: ClientAccount; sessionId: string }> {
+	async login(data: {
+		email: string;
+		password: string;
+	}): Promise<{ clientAccount: ClientAccount; sessionId: string }> {
 		const exist = await accountRepository.findByEmail({ email: data.email });
 		if (!exist || !(await verifyPassword(data.password, exist.password_hash)))
 			throw new AppError("Invalid email or password", 401);
@@ -88,10 +91,10 @@ export default class AuthService {
 			phone: account.person.phone,
 			dateOfBirth: account.person.date_of_birth,
 			role: account.role,
-			createdAt: account.created_at,
+			createdAt: account.person.created_at,
 		};
 
-		return { account: clientAccount, sessionId };
+		return { clientAccount, sessionId };
 	}
 
 	async logout(data: { sessionId: string }): Promise<boolean> {
@@ -100,9 +103,9 @@ export default class AuthService {
 		return true;
 	}
 
-	async me(data: { accountId: string }): Promise<ClientAccount> {
+	async me(data: { accountId: string }): Promise<ClientAccount | null> {
 		const account = await accountRepository.findWithPerson({ accountId: data.accountId });
-		if (!account) throw new AppError("Account not found", 404);
+		if (!account) return null;
 
 		return {
 			id: account.id,
@@ -114,7 +117,7 @@ export default class AuthService {
 			phone: account.person.phone,
 			dateOfBirth: account.person.date_of_birth,
 			role: account.role,
-			createdAt: account.created_at,
+			createdAt: account.person.created_at,
 		};
 	}
 

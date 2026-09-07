@@ -21,12 +21,11 @@ export const LoginRequestSchema = z.object({
 });
 export type LoginRequest = z.infer<typeof LoginRequestSchema>;
 export type LoginResponse = {
-	account: ClientAccount;
-	token?: string;
+	clientAccount: ClientAccount;
 };
 
 export type MeResponse = {
-	data: ClientAccount;
+	data: ClientAccount | null;
 };
 
 export const ConfirmEmailRequestSchema = z.object({
