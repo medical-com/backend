@@ -25,22 +25,22 @@ export default class AuthController {
 	constructor(readonly service: AuthService) {}
 
 	@ValidateBody(RegisterRequestSchema)
-	async onRegister(req: express.Request, res: express.Response) {
+	async onRegister(req: express.Request, res: express.Response<RegisterResponse>) {
 		if (req.account) throw new AppError("Already logged in");
 
 		const success = await this.service.register(req.body);
 
-		res.status(201).json({ success } as RegisterResponse);
+		res.status(201).json({ success });
 	}
 
 	@ValidateBody(LoginRequestSchema)
-	async onLogin(req: express.Request, res: express.Response) {
+	async onLogin(req: express.Request, res: express.Response<LoginResponse>) {
 		if (req.account) throw new AppError("Already logged in");
 
 		const { account, sessionId } = await this.service.login({ email: req.body.email, password: req.body.password });
 
 		res.cookie(SESSION_COOKIE_NAME, sessionId, SESSION_COOKIE_OPTIONS);
-		res.json({ account, sessionId } as LoginResponse);
+		res.json({ account, token: sessionId });
 	}
 
 	@RequireAuth()
@@ -53,35 +53,35 @@ export default class AuthController {
 	}
 
 	@RequireAuth()
-	async onMe(req: express.Request, res: express.Response) {
+	async onMe(req: express.Request, res: express.Response<MeResponse>) {
 		const account = req.account;
 		if (!account) throw new AppError("Authentication required", 401);
 
 		const result = await this.service.me({ accountId: account.id });
-		res.json({ data: result } as MeResponse);
+		res.json({ data: result });
 	}
 
 	@ValidateBody(ConfirmEmailRequestSchema)
-	async onConfirmEmail(req: express.Request, res: express.Response) {
+	async onConfirmEmail(req: express.Request, res: express.Response<ConfirmEmailResponse>) {
 		const { token } = req.body;
 		const success = await this.service.confirmEmail({ token });
 
-		res.json({ success } as ConfirmEmailResponse);
+		res.json({ success });
 	}
 
 	@ValidateBody(ForgotPasswordRequestSchema)
-	async onForgotPassword(req: express.Request, res: express.Response) {
+	async onForgotPassword(req: express.Request, res: express.Response<ForgotPasswordResponse>) {
 		const { email } = req.body;
 		const success = await this.service.forgotPassword({ email });
 
-		res.json({ success } as ForgotPasswordResponse);
+		res.json({ success });
 	}
 
 	@ValidateBody(ResetPasswordRequestSchema)
-	async onResetPassword(req: express.Request, res: express.Response) {
+	async onResetPassword(req: express.Request, res: express.Response<ResetPasswordResponse>) {
 		const { token, password } = req.body;
 		const success = await this.service.resetPassword({ token, password });
 
-		res.json({ success } as ResetPasswordResponse);
+		res.json({ success });
 	}
 }
