@@ -7,7 +7,7 @@ import { hashPassword, verifyPassword } from "@/core/security/password";
 import { createSession, destroySession } from "@/core/security/session.store";
 import { AccountRole, AccountStatus } from "@/database/types";
 import type { ClientAccount } from "@/types/client/account.type";
-import { accountRepository, personRepository } from "@/database/repositories";
+import { accountRepository, patientRepository, personRepository } from "@/database/repositories";
 import redis from "@/core/redis";
 import { Knex } from "knex";
 import { mailService } from "@/core/mail";
@@ -41,6 +41,8 @@ export default class AuthService {
 				},
 				trx,
 			);
+
+			await patientRepository.insert({ person_id: person.id }, trx);
 
 			const passwordHash = await hashPassword(data.password);
 			const account = await accountRepository.insert(

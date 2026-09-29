@@ -72,6 +72,7 @@ export class AccountRepository {
 			},
 		};
 	}
+
 	async insert(
 		data: Omit<Account, "id" | "last_login_at" | "created_at" | "updated_at">,
 		trx?: Knex.Transaction,
