@@ -1,12 +1,26 @@
 import type express from "express";
 
 import { validate } from "@/core/security/validate";
-import { DashboardPatientListQuerySchema, DashboardPatientListResponse } from "./types/patient.schema";
+import {
+	DashboardPatientListQuerySchema,
+	DashboardPatientListResponse,
+	FindOneQuerySchema,
+	FindOneResponse,
+} from "./types/patient.schema";
 import { dashboardPatientService as service } from "./patient.service";
 import { RequireAuth } from "@/core/decorators/require-auth";
 import { Throttle } from "@/core/decorators/throttle";
 
 class DashboardPatientController {
+	@RequireAuth()
+	@Throttle({ limit: 10, windowMs: 1000 })
+	async findOne(req: express.Request, res: express.Response<FindOneResponse>) {
+		const { id } = validate(FindOneQuerySchema, req.query);
+
+		const patient = await service.findOne(id);
+		res.json(patient);
+	}
+
 	@RequireAuth()
 	@Throttle({ limit: 10, windowMs: 1000 })
 	async list(req: express.Request, res: express.Response<DashboardPatientListResponse>) {

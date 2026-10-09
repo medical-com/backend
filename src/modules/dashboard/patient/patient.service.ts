@@ -1,3 +1,4 @@
+import { AppError } from "@/core/errors/app-error";
 import { patientRepository } from "@/database/repositories";
 import { Patient } from "@/database/types/patients.types";
 import { Person } from "@/database/types/persons.types";
@@ -5,6 +6,13 @@ import { ClientPatient } from "@/types/client/patient.type";
 import { WithPagination } from "@/types/pagination.type";
 
 class DashboardPatientService {
+	async findOne(id: string): Promise<ClientPatient> {
+		const patient = await patientRepository.findWithPerson({ id });
+		if (!patient) throw new AppError("Patient not found", 404);
+
+		return this.toClientPatient(patient);
+	}
+
 	async list(data: {
 		filters: { name?: string; email?: string; phoneNumber?: string };
 		page?: number;

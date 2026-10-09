@@ -8,8 +8,60 @@ import { Patient, Person } from "../types";
 export class PatientRepository {
 	async insert(data: { person_id?: string }, trx?: Knex.Transaction): Promise<Patient> {
 		try {
-			const [patient] = await (trx ?? db)("public.patients").insert(data).returning("*");
+			const [patient] = await (trx || db)("public.patients")
+				.insert({ ...data })
+				.returning("*");
+			if (!patient) throw new DatabaseError("Failed to insert patient");
+
 			return patient;
+		} catch (err) {
+			throw new DatabaseError(err);
+		}
+	}
+
+	async findWithPerson(data: { id: string }, trx?: Knex.Transaction): Promise<(Patient & { person: Person }) | null> {
+		try {
+			const patient = await (trx || db)("public.patients as pa")
+				.leftJoin("public.persons as pe", "pe.id", "pa.person_id")
+				.select(
+					"pa.id as patient_id",
+					"pa.person_id as person_id",
+					"pa.created_at as patient_created_at",
+					"pa.updated_at as patient_updated_at",
+
+					"pe.id as person_id",
+					"pe.first_name as pe_first_name",
+					"pe.last_name as pe_last_name",
+					"pe.email as pe_email",
+					"pe.phone as pe_phone",
+					"pe.date_of_birth as pe_date_of_birth",
+					"pe.pesel as pe_pesel",
+					"pe.created_at as person_created_at",
+					"pe.updated_at as person_updated_at",
+				)
+				.where("pa.id", data.id)
+				.first();
+
+			if (!patient) return null;
+
+			return {
+				id: patient.patient_id,
+				person_id: patient.person_id,
+				created_at: patient.patient_created_at,
+				updated_at: patient.patient_updated_at,
+
+				person: {
+					id: patient.person_id,
+					first_name: patient.pe_first_name,
+					last_name: patient.pe_last_name,
+					email: patient.pe_email,
+					phone: patient.pe_phone,
+					date_of_birth: patient.pe_date_of_birth,
+					pesel: patient.pe_pesel,
+					created_at: patient.person_created_at,
+					updated_at: patient.person_updated_at,
+				},
+			};
 		} catch (err) {
 			throw new DatabaseError(err);
 		}
