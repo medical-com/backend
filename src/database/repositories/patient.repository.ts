@@ -1,9 +1,9 @@
 import db from "..";
 
 import { DatabaseError } from "@/core/errors/database-error";
-import { Knex } from "knex";
-import { WithPagination } from "@/types/pagination.type";
-import { Patient, Person } from "../types";
+import type { Knex } from "knex";
+import type { WithPagination } from "@/types/pagination.type";
+import type { Patient, Person } from "../types";
 
 export class PatientRepository {
 	async insert(data: { person_id?: string }, trx?: Knex.Transaction): Promise<Patient> {

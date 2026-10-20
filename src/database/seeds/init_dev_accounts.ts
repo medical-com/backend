@@ -3,18 +3,21 @@ import { Account, AccountRole, AccountStatus, Person } from "../types";
 import { hashPassword } from "@/core/security/password";
 
 import data from "./data/accounts.json";
+import { FileLogger } from "@/core/logger";
+
+const logger = new FileLogger("logs/seeds.log");
 
 export async function seed(knex: Knex): Promise<void> {
-	console.log("Seeding development accounts...");
+	logger.info("Seeding development accounts...");
 	if (!data) {
-		console.log("No data found in accounts.json. Skipping seeding.");
+		logger.error("No data found in accounts.json. Skipping seeding.");
 		return;
 	}
 
 	for (const account of data) {
 		const existingAccount = await knex<Account>("public.accounts").where({ email: account.email }).first();
 		if (existingAccount) {
-			console.log(`Account with email ${account.email} already exists. Skipping.`);
+			logger.info(`Account with email ${account.email} already exists. Skipping.`);
 			continue;
 		}
 
@@ -43,5 +46,5 @@ export async function seed(knex: Knex): Promise<void> {
 		});
 	}
 
-	console.log("Development accounts seeded successfully.");
+	logger.info("Development accounts seeded successfully.");
 }

@@ -9,7 +9,7 @@ import { AccountRole, AccountStatus } from "@/database/types";
 import type { ClientAccount } from "@/types/client/account.type";
 import { accountRepository, patientRepository, personRepository } from "@/database/repositories";
 import redis from "@/core/redis";
-import { Knex } from "knex";
+import type { Knex } from "knex";
 import { mailService } from "@/core/mail";
 
 export default class AuthService {

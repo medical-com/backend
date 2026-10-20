@@ -1,9 +1,9 @@
 import { AppError } from "@/core/errors/app-error";
 import { patientRepository } from "@/database/repositories";
-import { Patient } from "@/database/types/patients.types";
-import { Person } from "@/database/types/persons.types";
-import { ClientPatient } from "@/types/client/patient.type";
-import { WithPagination } from "@/types/pagination.type";
+import type { Patient } from "@/database/types/patients.types";
+import type { Person } from "@/database/types/persons.types";
+import type { ClientPatient } from "@/types/client/patient.type";
+import type { WithPagination } from "@/types/pagination.type";
 
 class DashboardPatientService {
 	async findOne(id: string): Promise<ClientPatient> {

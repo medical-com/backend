@@ -1,5 +1,5 @@
-import { ClientPatient } from "@/types/client/patient.type";
-import { WithPaginationResponse } from "@/types/pagination.type";
+import type { ClientPatient } from "@/types/client/patient.type";
+import type { WithPaginationResponse } from "@/types/pagination.type";
 import { z } from "zod";
 
 export const FindOneQuerySchema = z.object({

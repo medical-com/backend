@@ -1,7 +1,7 @@
 import Modules from "..";
 import DashboardPatientModule from "./patient/patient.module";
 
-import { TypedRouter } from "@/types/api-paths.type";
+import type { TypedRouter } from "@/types/api-paths.type";
 
 export default class DashboardModule {
 	readonly patient: DashboardPatientModule;
