@@ -4,16 +4,6 @@ import { hashPassword } from "@/core/security/password";
 
 import data from "./data/accounts.json";
 
-type ItemType = {
-	firstName: string;
-	lastName: string;
-	email: string;
-	pesel: string;
-	dateOfBirth: string;
-	phoneNumber: string;
-	password: string;
-};
-
 export async function seed(knex: Knex): Promise<void> {
 	console.log("Seeding development accounts...");
 	if (!data) {
