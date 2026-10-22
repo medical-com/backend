@@ -54,11 +54,11 @@ class DashboardPatientService {
 			id: patient.person_id,
 			update: {
 				date_of_birth: dateOfBirth ? new Date(dateOfBirth) : undefined,
-				email: email,
+				email,
 				first_name: firstName,
 				last_name: lastName,
 				phone: phoneNumber,
-				pesel: pesel,
+				pesel,
 			},
 		});
 
