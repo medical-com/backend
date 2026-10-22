@@ -11,9 +11,10 @@ import {
 import { dashboardPatientService as service } from "./patient.service";
 import { RequireAuth } from "@/core/decorators/require-auth";
 import { Throttle } from "@/core/decorators/throttle";
+import { AccountRole } from "@/database/types/accounts.types";
 
 class DashboardPatientController {
-	@RequireAuth()
+	@RequireAuth({ role: AccountRole.ADMIN })
 	@Throttle({ limit: 10, windowMs: 1000 })
 	async findOne(req: express.Request, res: express.Response<FindOneResponse>) {
 		const { id } = validate(FindOneQuerySchema, req.query);
@@ -22,7 +23,7 @@ class DashboardPatientController {
 		res.json(patient);
 	}
 
-	@RequireAuth()
+	@RequireAuth({ role: AccountRole.ADMIN })
 	@Throttle({ limit: 10, windowMs: 1000 })
 	async list(req: express.Request, res: express.Response<DashboardPatientListResponse>) {
 		const { email, name, phoneNumber, page, limit } = validate(DashboardPatientListQuerySchema, req.query);
@@ -40,7 +41,7 @@ class DashboardPatientController {
 		});
 	}
 
-	@RequireAuth()
+	@RequireAuth({ role: AccountRole.ADMIN })
 	@Throttle({ limit: 10, windowMs: 1000 })
 	async update(req: express.Request, res: express.Response) {
 		const { id, firstName, lastName, email, phoneNumber, dateOfBirth, pesel } = validate(
