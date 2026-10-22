@@ -4,6 +4,7 @@ import { validate } from "@/core/security/validate";
 import {
 	DashboardPatientListQuerySchema,
 	DashboardPatientListResponse,
+	DashboardPatientUpdateSchema,
 	FindOneQuerySchema,
 	FindOneResponse,
 } from "./types/patient.schema";
@@ -37,6 +38,21 @@ class DashboardPatientController {
 				hasNextPage: result.hasNextPage,
 			},
 		});
+	}
+
+	@RequireAuth()
+	@Throttle({ limit: 10, windowMs: 1000 })
+	async update(req: express.Request, res: express.Response) {
+		const { id, firstName, lastName, email, phoneNumber, dateOfBirth, pesel } = validate(
+			DashboardPatientUpdateSchema,
+			req.body,
+		);
+
+		const updatedPatient = await service.update({
+			id,
+			update: { firstName, lastName, email, phoneNumber, dateOfBirth, pesel },
+		});
+		res.json(updatedPatient);
 	}
 }
 export const dashboardPatientController = new DashboardPatientController();

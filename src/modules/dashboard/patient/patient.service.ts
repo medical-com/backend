@@ -1,5 +1,5 @@
 import { AppError } from "@/core/errors/app-error";
-import { patientRepository } from "@/database/repositories";
+import { patientRepository, personRepository } from "@/database/repositories";
 import type { Patient } from "@/database/types/patients.types";
 import type { Person } from "@/database/types/persons.types";
 import type { ClientPatient } from "@/types/client/patient.type";
@@ -33,6 +33,39 @@ class DashboardPatientService {
 			total: patients.total,
 			totalPages: patients.totalPages,
 		};
+	}
+
+	async update(data: {
+		id: string;
+		update: {
+			firstName?: string;
+			lastName?: string;
+			email?: string;
+			phoneNumber?: string;
+			dateOfBirth?: Date;
+			pesel?: string;
+		};
+	}): Promise<ClientPatient> {
+		const patient = await patientRepository.findWithPerson({ id: data.id });
+		if (!patient) throw new AppError("Patient not found", 404);
+		const { firstName, lastName, email, phoneNumber, dateOfBirth, pesel } = data.update;
+
+		await personRepository.validateAndUpdate({
+			id: patient.person_id,
+			update: {
+				date_of_birth: dateOfBirth ? new Date(dateOfBirth) : undefined,
+				email: email,
+				first_name: firstName,
+				last_name: lastName,
+				phone: phoneNumber,
+				pesel: pesel,
+			},
+		});
+
+		const updatedPatient = await patientRepository.findWithPerson({ id: patient.id });
+		if (!updatedPatient) throw new AppError("Patient not found after update", 404);
+
+		return this.toClientPatient(updatedPatient);
 	}
 
 	private toClientPatient(patient: Patient & { person: Person }): ClientPatient {
