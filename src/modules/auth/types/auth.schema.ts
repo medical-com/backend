@@ -1,4 +1,5 @@
 import type { ClientAccount } from "@/types/client/account.type";
+import { phoneNumberSchema } from "@/types/zod.types";
 import { z } from "zod";
 
 export const RegisterRequestSchema = z.object({
@@ -7,10 +8,7 @@ export const RegisterRequestSchema = z.object({
 	email: z.email(),
 	pesel: z.string().length(11).regex(/^\d+$/),
 	dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-	phoneNumber: z
-		.string()
-		.transform((value) => value.replace(/\s/g, ""))
-		.pipe(z.e164()),
+	phoneNumber: phoneNumberSchema,
 	password: z.string().min(8),
 });
 export type RegisterRequest = z.infer<typeof RegisterRequestSchema>;

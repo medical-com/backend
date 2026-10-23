@@ -154,6 +154,60 @@ class DashboardDoctorService {
 		};
 	}
 
+	async update(data: {
+		id: string;
+		update: {
+			firstName?: string;
+			lastName?: string;
+			email?: string;
+			phoneNumber?: string;
+			dateOfBirth?: Date;
+			pesel?: string;
+			licenseNumber?: string;
+			specialization?: string;
+		};
+	}): Promise<ClientDoctor> {
+		const doctor = await doctorRepository.findWithPerson({ doctorId: data.id });
+		if (!doctor) throw new AppError("Doctor not found", 404);
+
+		const { firstName, lastName, email, phoneNumber, dateOfBirth, pesel, licenseNumber, specialization } =
+			data.update;
+
+		const updatedDoctor = await db.transaction(async (trx) => {
+			await personRepository.validateAndUpdate(
+				{
+					id: doctor.person_id,
+					update: {
+						date_of_birth: dateOfBirth ? new Date(dateOfBirth) : undefined,
+						email,
+						first_name: firstName,
+						last_name: lastName,
+						phone: phoneNumber,
+						pesel,
+					},
+				},
+				trx,
+			);
+
+			await doctorRepository.update(
+				{
+					id: doctor.id,
+					update: {
+						license_number: licenseNumber,
+						specialization,
+					},
+				},
+				trx,
+			);
+
+			const result = await doctorRepository.findWithPerson({ doctorId: doctor.id }, trx);
+			if (!result) throw new AppError("Doctor not found after update", 404);
+			return result;
+		});
+
+		return this.toClientDoctor(updatedDoctor);
+	}
+
 	private toClientDoctor(doctor: Doctor & { person: Person }): ClientDoctor {
 		return {
 			id: doctor.id,

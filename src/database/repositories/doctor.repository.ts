@@ -75,6 +75,26 @@ export class DoctorRepository {
 		}
 	}
 
+	async update(
+		data: {
+			id: string;
+			update: Partial<Pick<Doctor, "license_number" | "specialization">>;
+		},
+		trx?: Knex.Transaction,
+	): Promise<Doctor> {
+		try {
+			const [doctor] = await (trx || db)<Doctor>("public.doctors")
+				.update(data.update)
+				.where({ id: data.id })
+				.returning("*");
+			if (!doctor) throw new DatabaseError(new Error("Update did not return a row"));
+
+			return doctor;
+		} catch (err) {
+			throw new DatabaseError(err);
+		}
+	}
+
 	private doctorWithPersonQuery(trx?: Knex.Transaction) {
 		return (trx ?? db)<Doctor>("public.doctors as doctors")
 			.leftJoin("public.persons as persons", "persons.id", "doctors.person_id")

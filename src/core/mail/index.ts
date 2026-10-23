@@ -7,7 +7,7 @@ class MailService {
 	private readonly logger: FileLogger;
 
 	constructor() {
-		this.logger = new FileLogger("logs/mail.log");
+		this.logger = new FileLogger("mail.log");
 		this.resend = new Resend(config.mail.resend.apiKey);
 	}
 
@@ -16,17 +16,19 @@ class MailService {
 
 		const { to, subject, html, from = config.mail.from } = options;
 
-		const { error } = await this.resend.emails.send({
-			from,
-			to,
-			subject,
-			html,
-		});
+		if (!config.mail.sendDisabled) {
+			const { error } = await this.resend.emails.send({
+				from,
+				to,
+				subject,
+				html,
+			});
 
-		if (error) {
-			this.logger.error(`Failed to send email to ${to}: ${error.message}`, { to, subject, html, from });
+			if (error) {
+				this.logger.error(`Failed to send email to ${to}: ${error.message}`, { to, subject, html, from });
 
-			throw new Error(`Mail delivery failed: ${error.message}`);
+				throw new Error(`Mail delivery failed: ${error.message}`);
+			}
 		}
 
 		this.logger.info(`Email sent to ${to} — subject: "${subject}"`, { to, subject, html, from });
