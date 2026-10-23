@@ -1,0 +1,92 @@
+[
+	{
+		"firstName": "Jan",
+		"lastName": "Kowalski",
+		"email": "jan.kowalski@example.com",
+		"pesel": "90010112345",
+		"dateOfBirth": "1990-01-01",
+		"phoneNumber": "500600701",
+		"password": "TestPassword1!"
+	},
+	{
+		"firstName": "Anna",
+		"lastName": "Nowak",
+		"email": "anna.nowak@example.com",
+		"pesel": "92021512346",
+		"dateOfBirth": "1992-02-15",
+		"phoneNumber": "500600702",
+		"password": "TestPassword2!"
+	},
+	{
+		"firstName": "Piotr",
+		"lastName": "Wiśniewski",
+		"email": "piotr.wisniewski@example.com",
+		"pesel": "88032012347",
+		"dateOfBirth": "1988-03-20",
+		"phoneNumber": "500600703",
+		"password": "TestPassword3!"
+	},
+	{
+		"firstName": "Katarzyna",
+		"lastName": "Wójcik",
+		"email": "katarzyna.wojcik@example.com",
+		"pesel": "95042512348",
+		"dateOfBirth": "1995-04-25",
+		"phoneNumber": "500600704",
+		"password": "TestPassword4!"
+	},
+	{
+		"firstName": "Michał",
+		"lastName": "Kamiński",
+		"email": "michal.kaminski@example.com",
+		"pesel": "87053012349",
+		"dateOfBirth": "1987-05-30",
+		"phoneNumber": "500600705",
+		"password": "TestPassword5!"
+	},
+	{
+		"firstName": "Aleksandra",
+		"lastName": "Lewandowska",
+		"email": "aleksandra.lewandowska@example.com",
+		"pesel": "01061512350",
+		"dateOfBirth": "2001-06-15",
+		"phoneNumber": "500600706",
+		"password": "TestPassword6!"
+	},
+	{
+		"firstName": "Tomasz",
+		"lastName": "Zieliński",
+		"email": "tomasz.zielinski@example.com",
+		"pesel": "93072012351",
+		"dateOfBirth": "1993-07-20",
+		"phoneNumber": "500600707",
+		"password": "TestPassword7!"
+	},
+	{
+		"firstName": "Magdalena",
+		"lastName": "Szymańska",
+		"email": "magdalena.szymanska@example.com",
+		"pesel": "99082512352",
+		"dateOfBirth": "1999-08-25",
+		"phoneNumber": "500600708",
+		"password": "TestPassword8!"
+	},
+	{
+		"firstName": "Paweł",
+		"lastName": "Woźniak",
+		"email": "pawel.wozniak@example.com",
+		"pesel": "91091012353",
+		"dateOfBirth": "1991-09-10",
+		"phoneNumber": "500600709",
+		"password": "TestPassword9!"
+	},
+	{
+		"firstName": "Julia",
+		"lastName": "Dąbrowska",
+		"email": "julia.dabrowska@example.com",
+		"pesel": "04011212354",
+		"dateOfBirth": "2004-01-12",
+		"phoneNumber": "500600710",
+		"password": "TestPassword10!"
+	}
+]

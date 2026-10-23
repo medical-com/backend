@@ -1,8 +1,6 @@
 import type { RequestHandler } from "express";
 import { getSession, SESSION_COOKIE_NAME } from "@/core/security/session.store";
-import AccountRepository from "@/database/repositories/account.repository";
-
-const accountRepository = new AccountRepository();
+import { accountRepository } from "@/database/repositories";
 
 // Populates req.account when a valid session cookie is present. Does not reject
 // unauthenticated requests - pair with requireAuth on routes that need an account.

@@ -2,7 +2,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import dotenv from "dotenv";
 import { z } from "zod";
-import { envSchema } from "./env.schema.ts.js";
+import { envSchema } from "./env.schema.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -23,6 +23,7 @@ const env = result.data;
 export const config = {
 	env: env.NODE_ENV,
 	port: env.PORT,
+	clientUrl: env.CLIENT_URL,
 
 	database: {
 		host: env.DB_HOST,
@@ -30,6 +31,14 @@ export const config = {
 		name: env.DB_NAME,
 		user: env.DB_USER,
 		password: env.DB_PASSWORD,
+	},
+
+	mail: {
+		resend: {
+			disabled: env.MAIL_RESEND_DISABLED,
+			apiKey: env.RESEND_API_KEY,
+		},
+		from: env.MAIL_FROM,
 	},
 
 	redis: {

@@ -15,7 +15,9 @@
 		"knex:migrate:rollback": "NODE_OPTIONS='--import tsx' knex --knexfile ./src/database/knexfile.ts migrate:rollback",
 		"knex:migrate:list": "NODE_OPTIONS='--import tsx' knex --knexfile ./src/database/knexfile.ts migrate:list",
 		"knex:migrate:up": "NODE_OPTIONS='--import tsx' knex --knexfile ./src/database/knexfile.ts migrate:up",
-		"knex:migrate:down": "NODE_OPTIONS='--import tsx' knex --knexfile ./src/database/knexfile.ts migrate:down"
+		"knex:migrate:down": "NODE_OPTIONS='--import tsx' knex --knexfile ./src/database/knexfile.ts migrate:down",
+		"knex:seed:make": "NODE_OPTIONS='--import tsx' knex --knexfile ./src/database/knexfile.ts seed:make",
+		"knex:seed:run": "NODE_OPTIONS='--import tsx' knex --knexfile ./src/database/knexfile.ts seed:run"
 	},
 	"author": "Dominik",
 	"license": "ISC",
@@ -28,6 +30,7 @@
 		"ioredis": "^5.11.1",
 		"knex": "^3.3.0",
 		"pg": "^8.22.0",
+		"resend": "^6.26.0",
 		"zod": "^4.4.3"
 	},
 	"devDependencies": {

@@ -4,7 +4,7 @@ import type { Knex } from "knex";
 import type { Account, AccountRole, Person } from "../types";
 import { DatabaseError } from "@/core/errors/database-error";
 
-export default class AccountRepository {
+export class AccountRepository {
 	async findById(data: { id: string }, trx?: Knex.Transaction): Promise<Account | undefined> {
 		try {
 			return await (trx || db)<Account>("public.accounts").select("*").where({ id: data.id }).first();
@@ -72,6 +72,7 @@ export default class AccountRepository {
 			},
 		};
 	}
+
 	async insert(
 		data: Omit<Account, "id" | "last_login_at" | "created_at" | "updated_at">,
 		trx?: Knex.Transaction,
@@ -106,6 +107,34 @@ export default class AccountRepository {
 		try {
 			const [account] = await (trx || db)<Account>("public.accounts")
 				.update({ last_login_at: new Date() })
+				.where({ id: data.id })
+				.returning("*");
+			if (!account) throw new DatabaseError(new Error("Update did not return a row"));
+
+			return account;
+		} catch (err) {
+			throw new DatabaseError(err);
+		}
+	}
+
+	async updateEmailVerified(data: { id: string; emailVerified: boolean }, trx?: Knex.Transaction): Promise<Account> {
+		try {
+			const [account] = await (trx || db)<Account>("public.accounts")
+				.update({ email_verified: data.emailVerified })
+				.where({ id: data.id })
+				.returning("*");
+			if (!account) throw new DatabaseError(new Error("Update did not return a row"));
+
+			return account;
+		} catch (err) {
+			throw new DatabaseError(err);
+		}
+	}
+
+	async updatePassword(data: { id: string; passwordHash: string }, trx?: Knex.Transaction): Promise<Account> {
+		try {
+			const [account] = await (trx || db)<Account>("public.accounts")
+				.update({ password_hash: data.passwordHash })
 				.where({ id: data.id })
 				.returning("*");
 			if (!account) throw new DatabaseError(new Error("Update did not return a row"));

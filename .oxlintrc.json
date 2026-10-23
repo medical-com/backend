@@ -25,13 +25,6 @@
 				"varsIgnorePattern": "^_"
 			}
 		],
-		"typescript/consistent-type-imports": [
-			"error",
-			{
-				"prefer": "type-imports",
-				"fixStyle": "inline-type-imports"
-			}
-		],
 		"typescript/no-import-type-side-effects": "error",
 
 		"eqeqeq": [
