@@ -1,0 +1,25 @@
+[
+	{
+		"firstName": "Dominik",
+		"lastName": "Oguralski",
+		"email": "dominik.oguralski@example.com",
+		"pesel": "90110112345",
+		"dateOfBirth": "1990-01-01",
+		"phoneNumber": "500600711",
+		"password": "TestPassword1!",
+		"licenseNumber": "1234567890",
+		"specialization": "Cardiology"
+	},
+
+	{
+		"firstName": "Anna",
+		"lastName": "Kowalska",
+		"email": "anna.kowalska@example.com",
+		"pesel": "90110112346",
+		"dateOfBirth": "1990-01-02",
+		"phoneNumber": "500600712",
+		"password": "TestPassword1!",
+		"licenseNumber": "1234567891",
+		"specialization": "Neurology"
+	}
+]

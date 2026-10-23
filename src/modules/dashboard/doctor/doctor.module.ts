@@ -1,0 +1,19 @@
+import express from "express";
+
+import DashboardModule from "../dashboard.module";
+import DashboardDoctorController from "./doctor.controller";
+
+import type { DashboardDoctorPaths } from "./types/doctor.types";
+import type { TypedRouter } from "@/types/api-paths.type";
+
+const router = express.Router() as TypedRouter<DashboardDoctorPaths>;
+export default class DashboardDoctorModule {
+	constructor(readonly modules: DashboardModule) {
+		const controller = new DashboardDoctorController();
+
+		router.get("/dashboard/doctor/find-one", async (req, res) => await controller.findOne(req, res));
+		router.get("/dashboard/doctor/list", async (req, res) => await controller.list(req, res));
+
+		this.modules.useRouter(router);
+	}
+}
