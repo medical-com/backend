@@ -1,6 +1,12 @@
 import type express from "express";
 
-import { FindOneQuerySchema, ListQuerySchema, UpdateDoctorSchema } from "./types/doctor.schema";
+import {
+	ConfirmDoctorInvitationSchema,
+	CreateDoctorSchema,
+	FindOneQuerySchema,
+	ListQuerySchema,
+	UpdateDoctorSchema,
+} from "./types/doctor.schema";
 import type { FindOneResponse, ListDoctorsResponse } from "./types/doctor.schema";
 import { validate } from "@/core/security/validate";
 
@@ -55,5 +61,21 @@ export default class DashboardDoctorController {
 			update: { firstName, lastName, email, phoneNumber, dateOfBirth, pesel, licenseNumber, specialization },
 		});
 		res.json(updatedDoctor);
+	}
+
+	@RequireAuth({ role: AccountRole.ADMIN })
+	@Throttle({ limit: 5, windowMs: 15 * 60 * 1000 })
+	async create(req: express.Request, res: express.Response<{ success: boolean }>) {
+		const data = validate(CreateDoctorSchema, req.body);
+		const success = await service.create(data);
+
+		res.status(201).json({ success });
+	}
+
+	async confirmInvitation(req: express.Request, res: express.Response<{ success: boolean }>) {
+		const { token } = validate(ConfirmDoctorInvitationSchema, req.body);
+		const success = await service.confirmDoctorInvitation({ token });
+
+		res.json({ success });
 	}
 }

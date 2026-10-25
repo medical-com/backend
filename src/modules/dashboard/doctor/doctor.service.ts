@@ -1,127 +1,17 @@
+import { randomUUID } from "node:crypto";
+
 import db from "@/database";
 import redis from "@/core/redis";
 
 import { AppError } from "@/core/errors/app-error";
-import { hashPassword, randomPassword } from "@/core/security/password";
+import { generateRandomPassword, hashPassword } from "@/core/security/password";
 import { accountRepository, doctorRepository, personRepository } from "@/database/repositories";
 import { AccountRole, AccountStatus, Doctor, Person } from "@/database/types";
+import { mailService } from "@/core/mail";
 import type { ClientDoctor } from "@/types/client/doctor.type";
 import type { WithPagination } from "@/types/pagination.type";
-import type { Knex } from "knex";
 
 class DashboardDoctorService {
-	async make(data: { personId: string; licenseNumber: string; specialization: string }): Promise<ClientDoctor> {
-		const doctor = await db.transaction(async (trx) => {
-			const person = await personRepository.findById({ id: data.personId }, trx);
-			if (!person) throw new AppError("Person not found", 404);
-
-			await accountRepository.updateRole({ id: person.id, role: AccountRole.DOCTOR }, trx);
-
-			const created = await doctorRepository.insert(
-				{
-					person_id: person.id,
-					license_number: data.licenseNumber,
-					specialization: data.specialization,
-				},
-				trx,
-			);
-
-			const doctor = await doctorRepository.findWithPerson({ doctorId: created.id }, trx);
-			if (!doctor) throw new AppError("Doctor not found", 404);
-
-			return doctor;
-		});
-
-		return this.toClientDoctor(doctor);
-	}
-
-	async create(data: {
-		firstName: string;
-		lastName: string;
-		pesel: string;
-		email: string;
-		phoneNumber: string;
-		dateOfBirth: Date;
-		licenseNumber: string;
-		specialization: string;
-	}): Promise<boolean> {
-		const _doctor = await db.transaction(async (trx) => {
-			const personWithPeselExists = await personRepository.findByPesel({ pesel: data.pesel }, trx);
-			if (personWithPeselExists) throw new Error("Person with this pesel already exists");
-			const personWithEmailExists = await personRepository.findByEmail({ email: data.email }, trx);
-			if (personWithEmailExists) throw new Error("Person with this email already exists");
-			const personWithPhoneExists = await personRepository.findByPhone({ phone: data.phoneNumber }, trx);
-			if (personWithPhoneExists) throw new Error("Person with this phone number already exists");
-
-			const person = await personRepository.insert(
-				{
-					first_name: data.firstName,
-					last_name: data.lastName,
-					email: data.email,
-					phone: data.phoneNumber,
-					pesel: data.pesel,
-					date_of_birth: new Date(data.dateOfBirth),
-				},
-				trx,
-			);
-
-			const password = await randomPassword();
-			const hashedPassword = await hashPassword(password);
-			await accountRepository.insert(
-				{
-					person_id: person.id,
-					email: data.email,
-					email_verified: false,
-					password_hash: hashedPassword,
-					role: AccountRole.DOCTOR,
-					status: AccountStatus.INVITED,
-				},
-				trx,
-			);
-
-			const created = await doctorRepository.insert(
-				{
-					person_id: person.id,
-					license_number: data.licenseNumber,
-					specialization: data.specialization,
-				},
-				trx,
-			);
-
-			return created;
-		});
-
-		//send email with password to doctor.email here and link to activate account
-
-		return true;
-	}
-
-	async createEmailVerificationToken(data: { accountId: string }, trx?: Knex.Transaction): Promise<string> {
-		const account = await accountRepository.findById({ id: data.accountId }, trx);
-		if (!account) throw new AppError("Account not found", 404);
-		if (account.email_verified) throw new AppError("Email is already verified", 400);
-
-		const token = Math.floor(100000 + Math.random() * 900000).toString();
-		await redis.set(`email_verification_token:${token}`, account.id, "EX", 60 * 60); // 1 hour expiration
-
-		return token;
-	}
-
-	async confirmEmail(data: { token: string }): Promise<boolean> {
-		const accountId = await redis.get(`email_verification_token:${data.token}`);
-		if (!accountId) throw new AppError("Invalid or expired verification token", 400);
-
-		const account = await accountRepository.findById({ id: accountId });
-		if (!account) throw new AppError("Account not found", 404);
-		if (account.email_verified) throw new AppError("Email is already verified", 400);
-
-		await redis.del(`email_verification_token:${data.token}`);
-
-		const result = await accountRepository.updateEmailVerified({ id: account.id, emailVerified: true });
-
-		return !!result;
-	}
-
 	async findOne(id: string): Promise<ClientDoctor | null> {
 		const doctor = await doctorRepository.findWithPerson({ doctorId: id });
 
@@ -188,6 +78,12 @@ class DashboardDoctorService {
 				},
 				trx,
 			);
+			if (
+				data.update.licenseNumber &&
+				(await doctorRepository.findByLicenseNumber({ licenseNumber: data.update.licenseNumber }, trx))
+			) {
+				throw new AppError("Doctor with this license number already exists", 400);
+			}
 
 			await doctorRepository.update(
 				{
@@ -206,6 +102,102 @@ class DashboardDoctorService {
 		});
 
 		return this.toClientDoctor(updatedDoctor);
+	}
+
+	async create(data: {
+		firstName: string;
+		lastName: string;
+		pesel: string;
+		email: string;
+		phoneNumber: string;
+		dateOfBirth: Date;
+		licenseNumber: string;
+		specialization: string;
+	}): Promise<boolean> {
+		await db.transaction(async (trx) => {
+			const personWithPeselExists = await personRepository.findByPesel({ pesel: data.pesel }, trx);
+			if (personWithPeselExists) throw new Error("Person with this pesel already exists");
+			const personWithEmailExists = await personRepository.findByEmail({ email: data.email }, trx);
+			if (personWithEmailExists) throw new Error("Person with this email already exists");
+			const personWithPhoneExists = await personRepository.findByPhone({ phone: data.phoneNumber }, trx);
+			if (personWithPhoneExists) throw new Error("Person with this phone number already exists");
+			const doctorWithLicenseExists = await doctorRepository.findByLicenseNumber(
+				{ licenseNumber: data.licenseNumber },
+				trx,
+			);
+			if (doctorWithLicenseExists) throw new AppError("Doctor with this license number already exists", 400);
+
+			const person = await personRepository.insert(
+				{
+					first_name: data.firstName,
+					last_name: data.lastName,
+					email: data.email,
+					phone: data.phoneNumber,
+					pesel: data.pesel,
+					date_of_birth: new Date(data.dateOfBirth),
+				},
+				trx,
+			);
+
+			const temporaryPassword = generateRandomPassword();
+			const account = await accountRepository.insert(
+				{
+					person_id: person.id,
+					email: data.email,
+					email_verified: false,
+					password_hash: await hashPassword(temporaryPassword),
+					role: AccountRole.DOCTOR,
+					status: AccountStatus.INVITED,
+				},
+				trx,
+			);
+			const token = await this.createDoctorInvitationToken({
+				accountId: account.id,
+				licenseNumber: data.licenseNumber,
+				specialization: data.specialization,
+			});
+			await mailService.sendDoctorInvitation({ ...data, email: person.email, token, temporaryPassword });
+		});
+
+		return true;
+	}
+
+	async createDoctorInvitationToken(data: {
+		accountId: string;
+		licenseNumber: string;
+		specialization: string;
+	}): Promise<string> {
+		const token = randomUUID();
+		await redis.set(`doctor_invitation_token:${token}`, JSON.stringify(data), "EX", 60 * 60);
+		return token;
+	}
+
+	async confirmDoctorInvitation(data: { token: string }): Promise<boolean> {
+		const invitation = await redis.get(`doctor_invitation_token:${data.token}`);
+		if (!invitation) throw new AppError("Invalid or expired doctor invitation", 400);
+
+		const { accountId, licenseNumber, specialization } = JSON.parse(invitation);
+
+		await db.transaction(async (trx) => {
+			const account = await accountRepository.findById({ id: accountId }, trx);
+			if (!account) throw new AppError("Account not found", 404);
+			if (account.status === AccountStatus.ACTIVE) return;
+			if (account.status !== AccountStatus.INVITED)
+				throw new AppError("Doctor invitation is no longer active", 400);
+
+			const person = await personRepository.findById({ id: account.person_id }, trx);
+			if (!person) throw new AppError("Person not found", 404);
+
+			const doctorWithLicenseExists = await doctorRepository.findByLicenseNumber({ licenseNumber }, trx);
+			if (doctorWithLicenseExists) throw new AppError("Doctor with this license number already exists", 400);
+
+			await doctorRepository.insert({ person_id: person.id, license_number: licenseNumber, specialization }, trx);
+			await accountRepository.updateEmailVerified({ id: account.id, emailVerified: true }, trx);
+			await accountRepository.updateStatus({ id: account.id, status: AccountStatus.ACTIVE }, trx);
+		});
+
+		await redis.del(`doctor_invitation_token:${data.token}`);
+		return true;
 	}
 
 	private toClientDoctor(doctor: Doctor & { person: Person }): ClientDoctor {

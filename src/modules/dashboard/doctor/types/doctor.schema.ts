@@ -20,6 +20,22 @@ export type ListQuery = z.infer<typeof ListQuerySchema>;
 
 export type ListDoctorsResponse = WithPaginationResponse<ClientDoctor>;
 
+export const CreateDoctorSchema = z.object({
+	firstName: z.string().trim().min(1),
+	lastName: z.string().trim().min(1),
+	pesel: z.string().trim().length(11).regex(/^\d+$/),
+	email: z.email(),
+	phoneNumber: phoneNumberSchema,
+	dateOfBirth: z.coerce.date(),
+	licenseNumber: z.string().trim().min(1),
+	specialization: z.string().trim().min(1),
+});
+export type CreateDoctor = z.infer<typeof CreateDoctorSchema>;
+
+export const ConfirmDoctorInvitationSchema = z.object({
+	token: z.uuid(),
+});
+
 export const UpdateDoctorSchema = z.object({
 	id: z.uuid(),
 	firstName: z.string().trim().min(1).optional(),
