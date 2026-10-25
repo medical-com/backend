@@ -1,5 +1,6 @@
 import { appendFileSync, mkdirSync } from "node:fs";
-import { dirname } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 export type LogLevel = "TRACE" | "DEBUG" | "INFO" | "WARN" | "ERROR" | "FATAL";
 
@@ -13,8 +14,15 @@ export interface Logger {
 }
 
 export class FileLogger implements Logger {
-	constructor(private readonly fileName: string) {
-		mkdirSync(dirname(fileName), { recursive: true });
+	private readonly filePath: string;
+
+	constructor(fileName: string) {
+		const currentDir = dirname(fileURLToPath(import.meta.url));
+		const logsDir = join(currentDir, "../../../logs");
+
+		mkdirSync(logsDir, { recursive: true });
+
+		this.filePath = join(logsDir, fileName);
 	}
 
 	trace(message: string, data?: unknown): void {
@@ -48,7 +56,7 @@ export class FileLogger implements Logger {
 
 		const line = `[${timestamp}] [${level}] ${message}${extra}\n`;
 
-		appendFileSync(this.fileName, line, "utf8");
+		appendFileSync(this.filePath, line, "utf8");
 	}
 
 	private stringify(data: unknown): string {

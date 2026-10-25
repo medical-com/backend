@@ -14,6 +14,10 @@ export const envSchema = z.object({
 
 	REDIS_URL: z.url().default("redis://localhost:6379"),
 
+	MAIL_SEND_DISABLED: z
+		.string()
+		.default("false")
+		.transform((value) => value === "true"),
 	MAIL_RESEND_DISABLED: z
 		.string()
 		.default("false")

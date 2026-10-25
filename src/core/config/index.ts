@@ -34,6 +34,7 @@ export const config = {
 	},
 
 	mail: {
+		sendDisabled: env.MAIL_SEND_DISABLED,
 		resend: {
 			disabled: env.MAIL_RESEND_DISABLED,
 			apiKey: env.RESEND_API_KEY,

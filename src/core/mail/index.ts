@@ -7,7 +7,7 @@ class MailService {
 	private readonly logger: FileLogger;
 
 	constructor() {
-		this.logger = new FileLogger("logs/mail.log");
+		this.logger = new FileLogger("mail.log");
 		this.resend = new Resend(config.mail.resend.apiKey);
 	}
 
@@ -16,17 +16,19 @@ class MailService {
 
 		const { to, subject, html, from = config.mail.from } = options;
 
-		const { error } = await this.resend.emails.send({
-			from,
-			to,
-			subject,
-			html,
-		});
+		if (!config.mail.sendDisabled) {
+			const { error } = await this.resend.emails.send({
+				from,
+				to,
+				subject,
+				html,
+			});
 
-		if (error) {
-			this.logger.error(`Failed to send email to ${to}: ${error.message}`, { to, subject, html, from });
+			if (error) {
+				this.logger.error(`Failed to send email to ${to}: ${error.message}`, { to, subject, html, from });
 
-			throw new Error(`Mail delivery failed: ${error.message}`);
+				throw new Error(`Mail delivery failed: ${error.message}`);
+			}
 		}
 
 		this.logger.info(`Email sent to ${to} — subject: "${subject}"`, { to, subject, html, from });
@@ -43,6 +45,42 @@ class MailService {
 		`;
 
 		await this.sendEmail({ to: email, subject, html });
+	}
+
+	async sendDoctorInvitation(options: {
+		email: string;
+		token: string;
+		temporaryPassword: string;
+		firstName: string;
+		lastName: string;
+		pesel: string;
+		phoneNumber: string;
+		dateOfBirth: Date;
+		licenseNumber: string;
+		specialization: string;
+	}): Promise<void> {
+		const link = `${config.clientUrl}/auth/confirm-doctor?token=${encodeURIComponent(options.token)}`;
+		const subject = "Doctor account invitation";
+		const html = `
+			<p>An administrator invited you to join the care team. Confirm your account using the link below:</p>
+			<p><a href="${link}">${link}</a></p>
+			<p><strong>Temporary password:</strong> ${options.temporaryPassword}</p>
+			<p><strong>Security notice:</strong> This is a temporary password. Change it as soon as possible after your first login.</p>
+			<h3>Submitted details</h3>
+			<ul>
+				<li>First name: ${options.firstName}</li>
+				<li>Last name: ${options.lastName}</li>
+				<li>PESEL: ${options.pesel}</li>
+				<li>Email: ${options.email}</li>
+				<li>Phone: ${options.phoneNumber}</li>
+				<li>Date of birth: ${options.dateOfBirth.toISOString().slice(0, 10)}</li>
+				<li>License number: ${options.licenseNumber}</li>
+				<li>Specialization: ${options.specialization}</li>
+			</ul>
+			<p>This invitation expires in 1 hour.</p>
+		`;
+
+		await this.sendEmail({ to: options.email, subject, html });
 	}
 
 	async sendPasswordReset(options: { email: string; token: string }): Promise<void> {

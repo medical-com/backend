@@ -1,7 +1,7 @@
 import db from "..";
 
 import type { Knex } from "knex";
-import type { Account, AccountRole, Person } from "../types";
+import type { Account, AccountRole, AccountStatus, Person } from "../types";
 import { DatabaseError } from "@/core/errors/database-error";
 
 export class AccountRepository {
@@ -121,6 +121,20 @@ export class AccountRepository {
 		try {
 			const [account] = await (trx || db)<Account>("public.accounts")
 				.update({ email_verified: data.emailVerified })
+				.where({ id: data.id })
+				.returning("*");
+			if (!account) throw new DatabaseError(new Error("Update did not return a row"));
+
+			return account;
+		} catch (err) {
+			throw new DatabaseError(err);
+		}
+	}
+
+	async updateStatus(data: { id: string; status: AccountStatus }, trx?: Knex.Transaction): Promise<Account> {
+		try {
+			const [account] = await (trx || db)<Account>("public.accounts")
+				.update({ status: data.status })
 				.where({ id: data.id })
 				.returning("*");
 			if (!account) throw new DatabaseError(new Error("Update did not return a row"));

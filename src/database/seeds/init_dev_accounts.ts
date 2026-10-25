@@ -5,7 +5,7 @@ import { hashPassword } from "@/core/security/password";
 import data from "./data/accounts.json";
 import { FileLogger } from "@/core/logger";
 
-const logger = new FileLogger("logs/seeds.log");
+const logger = new FileLogger("seeds.log");
 
 export async function seed(knex: Knex): Promise<void> {
 	logger.info("Seeding development accounts...");

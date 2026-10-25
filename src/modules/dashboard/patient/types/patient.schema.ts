@@ -1,5 +1,6 @@
 import type { ClientPatient } from "@/types/client/patient.type";
 import type { WithPaginationResponse } from "@/types/pagination.type";
+import { phoneNumberSchema } from "@/types/zod.types";
 import { z } from "zod";
 
 export const FindOneQuerySchema = z.object({
@@ -23,10 +24,7 @@ export const DashboardPatientUpdateSchema = z.object({
 	firstName: z.string().trim().min(1).optional(),
 	lastName: z.string().trim().min(1).optional(),
 	email: z.email().optional(),
-	phoneNumber: z
-		.string()
-		.transform((value) => value.replace(/\s/g, ""))
-		.pipe(z.e164()),
+	phoneNumber: phoneNumberSchema.optional(),
 	dateOfBirth: z.coerce.date().optional(),
 	pesel: z.string().trim().min(1).optional(),
 });

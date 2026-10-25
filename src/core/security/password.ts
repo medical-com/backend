@@ -21,3 +21,17 @@ export async function verifyPassword(password: string, storedHash: string): Prom
 
 	return timingSafeEqual(hashBuffer, derivedBuffer);
 }
+
+export async function randomPassword(length: number = 12): Promise<string> {
+	return await hashPassword(generateRandomPassword(length));
+}
+
+export function generateRandomPassword(length: number = 12): string {
+	const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+[]{}|;:,.<>?";
+	let password = "";
+	for (let i = 0; i < length; i++) {
+		const randomIndex = Math.floor(Math.random() * charset.length);
+		password += charset[randomIndex];
+	}
+	return password;
+}
