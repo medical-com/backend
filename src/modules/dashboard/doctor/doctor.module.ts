@@ -16,6 +16,9 @@ export default class DashboardDoctorModule {
 		router.post("/dashboard/doctor/update", async (req, res) => await controller.update(req, res));
 		router.post("/dashboard/doctor/create", async (req, res) => await controller.create(req, res));
 		router.post("/dashboard/doctor/confirm-invitation", async (req, res) => await controller.confirmInvitation(req, res));
+		router.post("/dashboard/doctor/schedule/create", async (req, res) => await controller.createSchedule(req, res));
+		router.post("/dashboard/doctor/schedule/update", async (req, res) => await controller.updateSchedule(req, res));
+		router.get("/dashboard/doctor/schedule/list", async (req, res) => await controller.listSchedules(req, res));
 
 		this.modules.useRouter(router);
 	}

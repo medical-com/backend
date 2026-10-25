@@ -5,11 +5,17 @@ import redis from "@/core/redis";
 
 import { AppError } from "@/core/errors/app-error";
 import { generateRandomPassword, hashPassword } from "@/core/security/password";
-import { accountRepository, doctorRepository, personRepository } from "@/database/repositories";
+import {
+	accountRepository,
+	doctorRepository,
+	doctorScheduleRepository,
+	personRepository,
+} from "@/database/repositories";
 import { AccountRole, AccountStatus, Doctor, Person } from "@/database/types";
 import { mailService } from "@/core/mail";
 import type { ClientDoctor } from "@/types/client/doctor.type";
 import type { WithPagination } from "@/types/pagination.type";
+import type { ClientDoctorSchedule } from "@/types/client/doctor.type";
 
 class DashboardDoctorService {
 	async findOne(id: string): Promise<ClientDoctor | null> {
@@ -78,12 +84,12 @@ class DashboardDoctorService {
 				},
 				trx,
 			);
-			if (
-				data.update.licenseNumber &&
-				(await doctorRepository.findByLicenseNumber({ licenseNumber: data.update.licenseNumber }, trx))
-			) {
+			const doctorWithLicenseNumber = await doctorRepository.findByLicenseNumber(
+				{ licenseNumber: data.update.licenseNumber ?? "" },
+				trx,
+			);
+			if (doctorWithLicenseNumber && doctorWithLicenseNumber.id !== doctor.id)
 				throw new AppError("Doctor with this license number already exists", 400);
-			}
 
 			await doctorRepository.update(
 				{
@@ -200,6 +206,90 @@ class DashboardDoctorService {
 		return true;
 	}
 
+	async createSchedule(data: {
+		doctorId: string;
+		dayOfWeek: number;
+		startTime: string;
+		endTime: string;
+		validFrom: Date;
+		validTo?: Date | null;
+	}): Promise<ClientDoctorSchedule> {
+		await this.ensureDoctorExists(data.doctorId);
+		await this.ensureDoctorHasNoScheduleForDay(data.doctorId, data.dayOfWeek);
+		const schedule = await doctorScheduleRepository.insert({
+			doctor_id: data.doctorId,
+			day_of_week: data.dayOfWeek,
+			start_time: data.startTime,
+			end_time: data.endTime,
+			valid_from: data.validFrom,
+			valid_to: data.validTo ?? null,
+		});
+		return this.toClientDoctorSchedule(schedule);
+	}
+
+	async updateSchedule(data: {
+		id: string;
+		doctorId?: string;
+		dayOfWeek?: number;
+		startTime?: string;
+		endTime?: string;
+		validFrom?: Date;
+		validTo?: Date | null;
+	}): Promise<ClientDoctorSchedule> {
+		const existing = await doctorScheduleRepository.findById({ id: data.id });
+		if (!existing) throw new AppError("Doctor schedule not found", 404);
+
+		const doctorId = data.doctorId ?? existing.doctor_id;
+		const dayOfWeek = data.dayOfWeek ?? existing.day_of_week;
+		await this.ensureDoctorHasNoScheduleForDay(doctorId, dayOfWeek, data.id);
+
+		const update = {
+			doctor_id: data.doctorId,
+			day_of_week: data.dayOfWeek,
+			start_time: data.startTime,
+			end_time: data.endTime,
+			valid_from: data.validFrom,
+			valid_to: data.validTo,
+		};
+		if (data.doctorId) await this.ensureDoctorExists(data.doctorId);
+
+		const schedule = await doctorScheduleRepository.update({
+			id: data.id,
+			update: Object.fromEntries(Object.entries(update).filter(([, value]) => value !== undefined)),
+		});
+		return this.toClientDoctorSchedule(schedule);
+	}
+
+	async listSchedules(data: {
+		filters: { doctorId?: string; doctorName?: string };
+		page?: number;
+		limit?: number;
+	}): Promise<WithPagination<ClientDoctorSchedule>> {
+		const result = await doctorScheduleRepository.list(data);
+		return {
+			...result,
+			data: result.data.map((schedule) => this.toClientDoctorSchedule(schedule)),
+		};
+	}
+
+	private async ensureDoctorExists(id: string): Promise<void> {
+		const doctor = await doctorRepository.findWithPerson({ doctorId: id });
+		if (!doctor) throw new AppError("Doctor not found", 404);
+	}
+
+	private async ensureDoctorHasNoScheduleForDay(
+		doctorId: string,
+		dayOfWeek: number,
+		excludeId?: string,
+	): Promise<void> {
+		const schedule = await doctorScheduleRepository.findByDoctorAndDay({
+			doctorId,
+			dayOfWeek,
+			excludeId,
+		});
+		if (schedule) throw new AppError("Doctor already has a schedule for this day", 400);
+	}
+
 	private toClientDoctor(doctor: Doctor & { person: Person }): ClientDoctor {
 		return {
 			id: doctor.id,
@@ -211,6 +301,18 @@ class DashboardDoctorService {
 			email: doctor.person.email,
 			phone: doctor.person.phone,
 			dateOfBirth: doctor.person.date_of_birth,
+		};
+	}
+
+	private toClientDoctorSchedule(schedule: import("@/database/types").DoctorSchedule): ClientDoctorSchedule {
+		return {
+			id: schedule.id,
+			doctorId: schedule.doctor_id,
+			dayOfWeek: schedule.day_of_week,
+			startTime: schedule.start_time,
+			endTime: schedule.end_time,
+			validFrom: schedule.valid_from,
+			validTo: schedule.valid_to ?? null,
 		};
 	}
 }

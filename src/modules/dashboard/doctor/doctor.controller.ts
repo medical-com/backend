@@ -4,10 +4,18 @@ import {
 	ConfirmDoctorInvitationSchema,
 	CreateDoctorSchema,
 	FindOneQuerySchema,
+	CreateDoctorScheduleSchema,
+	ListDoctorSchedulesSchema,
 	ListQuerySchema,
+	UpdateDoctorScheduleSchema,
 	UpdateDoctorSchema,
 } from "./types/doctor.schema";
-import type { FindOneResponse, ListDoctorsResponse } from "./types/doctor.schema";
+import type {
+	DoctorScheduleListResponse,
+	DoctorScheduleResponse,
+	FindOneResponse,
+	ListDoctorsResponse,
+} from "./types/doctor.schema";
 import { validate } from "@/core/security/validate";
 
 import { dashboardDoctorService as service } from "./doctor.service";
@@ -77,5 +85,38 @@ export default class DashboardDoctorController {
 		const success = await service.confirmDoctorInvitation({ token });
 
 		res.json({ success });
+	}
+
+	@RequireAuth({ role: AccountRole.ADMIN })
+	@Throttle({ limit: 10, windowMs: 1000 })
+	async createSchedule(req: express.Request, res: express.Response<DoctorScheduleResponse>) {
+		const data = validate(CreateDoctorScheduleSchema, req.body);
+		const schedule = await service.createSchedule(data);
+		res.status(201).json(schedule);
+	}
+
+	@RequireAuth({ role: AccountRole.ADMIN })
+	@Throttle({ limit: 10, windowMs: 1000 })
+	async updateSchedule(req: express.Request, res: express.Response<DoctorScheduleResponse>) {
+		const data = validate(UpdateDoctorScheduleSchema, req.body);
+		const schedule = await service.updateSchedule(data);
+		res.json(schedule);
+	}
+
+	@RequireAuth({ role: AccountRole.ADMIN })
+	@Throttle({ limit: 10, windowMs: 1000 })
+	async listSchedules(req: express.Request, res: express.Response<DoctorScheduleListResponse>) {
+		const { doctorId, doctorName, page, limit } = validate(ListDoctorSchedulesSchema, req.query);
+		const result = await service.listSchedules({ filters: { doctorId, doctorName }, page, limit });
+		res.json({
+			data: result.data,
+			pagination: {
+				total: result.total,
+				page: result.page,
+				limit: result.limit,
+				totalPages: result.totalPages,
+				hasNextPage: result.hasNextPage,
+			},
+		});
 	}
 }

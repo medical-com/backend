@@ -1,4 +1,4 @@
-import type { ClientDoctor } from "@/types/client/doctor.type";
+import type { ClientDoctor, ClientDoctorSchedule } from "@/types/client/doctor.type";
 import type { WithPaginationResponse } from "@/types/pagination.type";
 import { phoneNumberSchema } from "@/types/zod.types";
 import { z } from "zod";
@@ -49,3 +49,57 @@ export const UpdateDoctorSchema = z.object({
 });
 export type UpdateDoctor = z.infer<typeof UpdateDoctorSchema>;
 export type UpdateDoctorResponse = ClientDoctor;
+
+const timeSchema = z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/, "Invalid time");
+
+export const CreateDoctorScheduleSchema = z
+	.object({
+		doctorId: z.uuid(),
+		dayOfWeek: z.coerce.number().int().min(1).max(7),
+		startTime: timeSchema,
+		endTime: timeSchema,
+		validFrom: z.coerce.date(),
+		validTo: z.coerce.date().nullable().optional(),
+	})
+	.refine((data) => data.startTime < data.endTime, {
+		message: "Start time must be before end time",
+		path: ["endTime"],
+	})
+	.refine((data) => !data.validTo || data.validTo >= data.validFrom, {
+		message: "Valid-to date must not be before valid-from date",
+		path: ["validTo"],
+	});
+export type CreateDoctorSchedule = z.infer<typeof CreateDoctorScheduleSchema>;
+
+export const UpdateDoctorScheduleSchema = z
+	.object({
+		id: z.uuid(),
+		doctorId: z.uuid().optional(),
+		dayOfWeek: z.coerce.number().int().min(1).max(7).optional(),
+		startTime: timeSchema.optional(),
+		endTime: timeSchema.optional(),
+		validFrom: z.coerce.date().optional(),
+		validTo: z.coerce.date().nullable().optional(),
+	})
+	.refine(
+		(data) =>
+			(data.startTime === undefined ||
+				data.endTime === undefined ||
+				data.startTime < data.endTime) &&
+			(data.validFrom === undefined ||
+				data.validTo === undefined ||
+				data.validTo === null ||
+				data.validTo >= data.validFrom),
+		{ message: "Invalid schedule time or date range" },
+	);
+export type UpdateDoctorSchedule = z.infer<typeof UpdateDoctorScheduleSchema>;
+
+export const ListDoctorSchedulesSchema = z.object({
+	doctorId: z.uuid().optional(),
+	doctorName: z.string().trim().min(1).optional(),
+	page: z.coerce.number().int().min(1).optional(),
+	limit: z.coerce.number().int().min(1).max(100).optional(),
+});
+export type ListDoctorSchedules = z.infer<typeof ListDoctorSchedulesSchema>;
+export type DoctorScheduleResponse = ClientDoctorSchedule;
+export type DoctorScheduleListResponse = WithPaginationResponse<ClientDoctorSchedule>;
