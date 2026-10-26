@@ -17,8 +17,8 @@ export interface ClientDoctorSchedule {
 export interface ClientDoctorScheduleException {
 	id: string;
 	doctorId: string;
-	startTime: Date;
-	endTime: Date;
+	startAt: Date;
+	endAt: Date;
 	type: string;
-	reason: string;
+	reason: string | null;
 }

@@ -1,4 +1,6 @@
 import type { ClientDoctor, ClientDoctorSchedule } from "@/types/client/doctor.type";
+import type { ClientDoctorScheduleException } from "@/types/client/doctor.type";
+import { DoctorScheduleExceptionType } from "@/database/types";
 import type { WithPaginationResponse } from "@/types/pagination.type";
 import { phoneNumberSchema } from "@/types/zod.types";
 import { z } from "zod";
@@ -83,9 +85,7 @@ export const UpdateDoctorScheduleSchema = z
 	})
 	.refine(
 		(data) =>
-			(data.startTime === undefined ||
-				data.endTime === undefined ||
-				data.startTime < data.endTime) &&
+			(data.startTime === undefined || data.endTime === undefined || data.startTime < data.endTime) &&
 			(data.validFrom === undefined ||
 				data.validTo === undefined ||
 				data.validTo === null ||
@@ -103,3 +103,44 @@ export const ListDoctorSchedulesSchema = z.object({
 export type ListDoctorSchedules = z.infer<typeof ListDoctorSchedulesSchema>;
 export type DoctorScheduleResponse = ClientDoctorSchedule;
 export type DoctorScheduleListResponse = WithPaginationResponse<ClientDoctorSchedule>;
+
+export const CreateDoctorScheduleExceptionSchema = z
+	.object({
+		doctorId: z.uuid(),
+		startAt: z.coerce.date(),
+		endAt: z.coerce.date(),
+		type: z.enum(DoctorScheduleExceptionType),
+		reason: z.string().trim().max(255).nullable().optional(),
+	})
+	.refine((data) => data.startAt < data.endAt, {
+		message: "Start date-time must be before end date-time",
+		path: ["endAt"],
+	});
+export type CreateDoctorScheduleException = z.infer<typeof CreateDoctorScheduleExceptionSchema>;
+
+export const UpdateDoctorScheduleExceptionSchema = z
+	.object({
+		id: z.uuid(),
+		doctorId: z.uuid().optional(),
+		startAt: z.coerce.date().optional(),
+		endAt: z.coerce.date().optional(),
+		type: z.enum(DoctorScheduleExceptionType).optional(),
+		reason: z.string().trim().max(255).nullable().optional(),
+	})
+	.refine((data) => data.startAt === undefined || data.endAt === undefined || data.startAt < data.endAt, {
+		message: "Start date-time must be before end date-time",
+		path: ["endAt"],
+	});
+export type UpdateDoctorScheduleException = z.infer<typeof UpdateDoctorScheduleExceptionSchema>;
+
+export const DeleteDoctorScheduleExceptionSchema = z.object({
+	id: z.uuid(),
+});
+export const ListDoctorScheduleExceptionsSchema = z.object({
+	doctorId: z.uuid(),
+	page: z.coerce.number().int().min(1).optional(),
+	limit: z.coerce.number().int().min(1).max(100).optional(),
+});
+export type DeleteDoctorScheduleExceptionResponse = { success: boolean };
+export type DoctorScheduleExceptionResponse = ClientDoctorScheduleException;
+export type DoctorScheduleExceptionListResponse = WithPaginationResponse<ClientDoctorScheduleException>;

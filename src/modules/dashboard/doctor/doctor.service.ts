@@ -9,13 +9,22 @@ import {
 	accountRepository,
 	doctorRepository,
 	doctorScheduleRepository,
+	doctorScheduleExceptionRepository,
 	personRepository,
 } from "@/database/repositories";
-import { AccountRole, AccountStatus, Doctor, Person } from "@/database/types";
+import {
+	AccountRole,
+	AccountStatus,
+	Doctor,
+	DoctorSchedule,
+	DoctorScheduleException,
+	DoctorScheduleExceptionType,
+	Person,
+} from "@/database/types";
 import { mailService } from "@/core/mail";
 import type { ClientDoctor } from "@/types/client/doctor.type";
 import type { WithPagination } from "@/types/pagination.type";
-import type { ClientDoctorSchedule } from "@/types/client/doctor.type";
+import type { ClientDoctorSchedule, ClientDoctorScheduleException } from "@/types/client/doctor.type";
 
 class DashboardDoctorService {
 	async findOne(id: string): Promise<ClientDoctor | null> {
@@ -272,6 +281,76 @@ class DashboardDoctorService {
 		};
 	}
 
+	async createScheduleException(data: {
+		doctorId: string;
+		startAt: Date;
+		endAt: Date;
+		type: DoctorScheduleExceptionType;
+		reason?: string | null;
+	}): Promise<ClientDoctorScheduleException> {
+		await this.ensureDoctorExists(data.doctorId);
+		const exception = await doctorScheduleExceptionRepository.insert({
+			doctor_id: data.doctorId,
+			start_at: data.startAt,
+			end_at: data.endAt,
+			type: data.type,
+			reason: data.reason ?? null,
+		});
+		return this.toClientDoctorScheduleException(exception);
+	}
+
+	async updateScheduleException(data: {
+		id: string;
+		doctorId?: string;
+		startAt?: Date;
+		endAt?: Date;
+		type?: DoctorScheduleExceptionType;
+		reason?: string | null;
+	}): Promise<ClientDoctorScheduleException> {
+		const existing = await doctorScheduleExceptionRepository.findById({ id: data.id });
+		if (!existing) throw new AppError("Doctor schedule exception not found", 404);
+
+		const doctorId = data.doctorId ?? existing.doctor_id;
+		const startAt = data.startAt ?? existing.start_at;
+		const endAt = data.endAt ?? existing.end_at;
+		if (data.doctorId) await this.ensureDoctorExists(data.doctorId);
+		if (startAt >= endAt) throw new AppError("Start date-time must be before end date-time", 400);
+
+		const exception = await doctorScheduleExceptionRepository.update({
+			id: data.id,
+			update: Object.fromEntries(
+				Object.entries({
+					doctor_id: data.doctorId,
+					start_at: data.startAt,
+					end_at: data.endAt,
+					type: data.type,
+					reason: data.reason,
+				}).filter(([, value]) => value !== undefined),
+			),
+		});
+		if (exception.doctor_id !== doctorId) throw new AppError("Doctor not found", 404);
+		return this.toClientDoctorScheduleException(exception);
+	}
+
+	async deleteScheduleException(data: { id: string }): Promise<boolean> {
+		const existing = await doctorScheduleExceptionRepository.findById({ id: data.id });
+		if (!existing) throw new AppError("Doctor schedule exception not found", 404);
+		return doctorScheduleExceptionRepository.delete({ id: data.id });
+	}
+
+	async listScheduleExceptions(data: {
+		doctorId: string;
+		page?: number;
+		limit?: number;
+	}): Promise<WithPagination<ClientDoctorScheduleException>> {
+		await this.ensureDoctorExists(data.doctorId);
+		const result = await doctorScheduleExceptionRepository.list(data);
+		return {
+			...result,
+			data: result.data.map((exception) => this.toClientDoctorScheduleException(exception)),
+		};
+	}
+
 	private async ensureDoctorExists(id: string): Promise<void> {
 		const doctor = await doctorRepository.findWithPerson({ doctorId: id });
 		if (!doctor) throw new AppError("Doctor not found", 404);
@@ -304,7 +383,7 @@ class DashboardDoctorService {
 		};
 	}
 
-	private toClientDoctorSchedule(schedule: import("@/database/types").DoctorSchedule): ClientDoctorSchedule {
+	private toClientDoctorSchedule(schedule: DoctorSchedule): ClientDoctorSchedule {
 		return {
 			id: schedule.id,
 			doctorId: schedule.doctor_id,
@@ -313,6 +392,17 @@ class DashboardDoctorService {
 			endTime: schedule.end_time,
 			validFrom: schedule.valid_from,
 			validTo: schedule.valid_to ?? null,
+		};
+	}
+
+	private toClientDoctorScheduleException(exception: DoctorScheduleException): ClientDoctorScheduleException {
+		return {
+			id: exception.id,
+			doctorId: exception.doctor_id,
+			startAt: exception.start_at,
+			endAt: exception.end_at,
+			type: exception.type,
+			reason: exception.reason ?? null,
 		};
 	}
 }

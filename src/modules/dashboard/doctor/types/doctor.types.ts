@@ -9,5 +9,9 @@ export const paths = {
 	createSchedule: "/dashboard/doctor/schedule/create",
 	updateSchedule: "/dashboard/doctor/schedule/update",
 	listSchedules: "/dashboard/doctor/schedule/list",
+	createScheduleException: "/dashboard/doctor/schedule-exception/create",
+	updateScheduleException: "/dashboard/doctor/schedule-exception/update",
+	deleteScheduleException: "/dashboard/doctor/schedule-exception/delete",
+	listScheduleExceptions: "/dashboard/doctor/schedule-exception/list",
 } as const;
 export type DashboardDoctorPaths = Flatten<typeof paths>;

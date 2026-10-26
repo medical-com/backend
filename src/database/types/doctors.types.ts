@@ -29,10 +29,10 @@ export enum DoctorScheduleExceptionType {
 export interface DoctorScheduleException {
 	id: string;
 	doctor_id: string;
-	start_time: Date;
-	end_time: Date;
+	start_at: Date;
+	end_at: Date;
 	type: DoctorScheduleExceptionType;
-	reason: string;
+	reason?: string | null;
 	created_at: Date;
 	updated_at: Date;
 }
