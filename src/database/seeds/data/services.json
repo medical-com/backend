@@ -1,0 +1,72 @@
+[
+	{
+		"name": "General Consultation",
+		"description": "A comprehensive consultation for common health concerns and preventive care.",
+		"category": "general",
+		"duration": 30,
+		"doctorLicenses": ["1234567897", "1234567890", "1234567891"]
+	},
+	{
+		"name": "Cardiology Consultation",
+		"description": "Assessment and treatment planning for heart and cardiovascular conditions.",
+		"category": "specialist",
+		"duration": 45,
+		"doctorLicenses": ["1234567890"]
+	},
+	{
+		"name": "Neurology Consultation",
+		"description": "Evaluation of neurological symptoms, disorders, and treatment options.",
+		"category": "specialist",
+		"duration": 45,
+		"doctorLicenses": ["1234567891"]
+	},
+	{
+		"name": "Orthopedic Assessment",
+		"description": "Assessment of bones, joints, muscles, and movement-related conditions.",
+		"category": "specialist",
+		"duration": 45,
+		"doctorLicenses": ["1234567892"]
+	},
+	{
+		"name": "Dermatology Skin Check",
+		"description": "Clinical examination of skin conditions, moles, and other concerns.",
+		"category": "specialist",
+		"duration": 30,
+		"doctorLicenses": ["1234567893"]
+	},
+	{
+		"name": "Vision Examination",
+		"description": "Routine eye examination and evaluation of visual health.",
+		"category": "vision",
+		"duration": 40,
+		"doctorLicenses": ["1234567894"]
+	},
+	{
+		"name": "Mental Health Consultation",
+		"description": "Confidential consultation focused on emotional wellbeing and mental health.",
+		"category": "mental_health",
+		"duration": 50,
+		"doctorLicenses": ["1234567895"]
+	},
+	{
+		"name": "Physiotherapy Session",
+		"description": "Individual therapy session focused on mobility, recovery, and pain reduction.",
+		"category": "physical_therapy",
+		"duration": 60,
+		"doctorLicenses": ["1234567896"]
+	},
+	{
+		"name": "Minor Surgical Consultation",
+		"description": "Pre-operative consultation and evaluation for minor surgical procedures.",
+		"category": "surgery",
+		"duration": 45,
+		"doctorLicenses": ["1234567898"]
+	},
+	{
+		"name": "Family Preventive Care",
+		"description": "Preventive health review covering screening, lifestyle, and wellness planning.",
+		"category": "general",
+		"duration": 30,
+		"doctorLicenses": ["1234567897", "1234567893"]
+	}
+]
