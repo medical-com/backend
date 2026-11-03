@@ -21,5 +21,82 @@
 		"password": "TestPassword1!",
 		"licenseNumber": "1234567891",
 		"specialization": "Neurology"
+	},
+	{
+		"firstName": "Marek",
+		"lastName": "Nowak",
+		"email": "marek.nowak@example.com",
+		"pesel": "88101512347",
+		"dateOfBirth": "1988-10-15",
+		"phoneNumber": "+48500600713",
+		"password": "TestPassword1!",
+		"licenseNumber": "1234567892",
+		"specialization": "Orthopedics"
+	},
+	{
+		"firstName": "Katarzyna",
+		"lastName": "Wisniewska",
+		"email": "katarzyna.wisniewska@example.com",
+		"pesel": "92032412348",
+		"dateOfBirth": "1992-03-24",
+		"phoneNumber": "+48500600714",
+		"password": "TestPassword1!",
+		"licenseNumber": "1234567893",
+		"specialization": "Dermatology"
+	},
+	{
+		"firstName": "Piotr",
+		"lastName": "Wojcik",
+		"email": "piotr.wojcik@example.com",
+		"pesel": "85070612349",
+		"dateOfBirth": "1985-07-06",
+		"phoneNumber": "+48500600715",
+		"password": "TestPassword1!",
+		"licenseNumber": "1234567894",
+		"specialization": "Ophthalmology"
+	},
+	{
+		"firstName": "Joanna",
+		"lastName": "Kaminska",
+		"email": "joanna.kaminska@example.com",
+		"pesel": "93081212350",
+		"dateOfBirth": "1993-08-12",
+		"phoneNumber": "+48500600716",
+		"password": "TestPassword1!",
+		"licenseNumber": "1234567895",
+		"specialization": "Psychiatry"
+	},
+	{
+		"firstName": "Tomasz",
+		"lastName": "Lewandowski",
+		"email": "tomasz.lewandowski@example.com",
+		"pesel": "87021912351",
+		"dateOfBirth": "1987-02-19",
+		"phoneNumber": "+48500600717",
+		"password": "TestPassword1!",
+		"licenseNumber": "1234567896",
+		"specialization": "Physiotherapy"
+	},
+	{
+		"firstName": "Magdalena",
+		"lastName": "Zielinska",
+		"email": "magdalena.zielinska@example.com",
+		"pesel": "90052712352",
+		"dateOfBirth": "1990-05-27",
+		"phoneNumber": "+48500600718",
+		"password": "TestPassword1!",
+		"licenseNumber": "1234567897",
+		"specialization": "General Practice"
+	},
+	{
+		"firstName": "Pawel",
+		"lastName": "Szymanski",
+		"email": "pawel.szymanski@example.com",
+		"pesel": "89110312353",
+		"dateOfBirth": "1989-11-03",
+		"phoneNumber": "+48500600719",
+		"password": "TestPassword1!",
+		"licenseNumber": "1234567898",
+		"specialization": "Surgery"
 	}
 ]
