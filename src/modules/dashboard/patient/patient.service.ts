@@ -1,4 +1,5 @@
 import { AppError } from "@/core/errors/app-error";
+import db from "@/database";
 import { patientRepository, personRepository } from "@/database/repositories";
 import type { Patient } from "@/database/types/patients.types";
 import type { Person } from "@/database/types/persons.types";
@@ -6,6 +7,46 @@ import type { ClientPatient } from "@/types/client/patient.type";
 import type { WithPagination } from "@/types/pagination.type";
 
 class DashboardPatientService {
+	async create(data: {
+		firstName: string;
+		lastName: string;
+		email: string;
+		phoneNumber: string;
+		dateOfBirth: Date;
+		pesel: string;
+	}): Promise<ClientPatient> {
+		const patient = await db.transaction(async (trx) => {
+			const [existingPesel, existingEmail, existingPhone] = await Promise.all([
+				personRepository.findByPesel({ pesel: data.pesel }, trx),
+				personRepository.findByEmail({ email: data.email }, trx),
+				personRepository.findByPhone({ phone: data.phoneNumber }, trx),
+			]);
+
+			if (existingPesel) throw new AppError("PESEL already exists", 409);
+			if (existingEmail) throw new AppError("Email already exists", 409);
+			if (existingPhone) throw new AppError("Phone number already exists", 409);
+
+			const person = await personRepository.insert(
+				{
+					first_name: data.firstName,
+					last_name: data.lastName,
+					email: data.email,
+					phone: data.phoneNumber,
+					date_of_birth: data.dateOfBirth,
+					pesel: data.pesel,
+				},
+				trx,
+			);
+			const createdPatient = await patientRepository.insert({ person_id: person.id }, trx);
+			const patientWithPerson = await patientRepository.findWithPerson({ id: createdPatient.id }, trx);
+
+			if (!patientWithPerson) throw new AppError("Patient not found after creation", 500);
+			return patientWithPerson;
+		});
+
+		return this.toClientPatient(patient);
+	}
+
 	async findOne(id: string): Promise<ClientPatient> {
 		const patient = await patientRepository.findWithPerson({ id });
 		if (!patient) throw new AppError("Patient not found", 404);

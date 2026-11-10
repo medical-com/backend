@@ -2,6 +2,8 @@ import type express from "express";
 
 import { validate } from "@/core/security/validate";
 import {
+	CreatePatientResponse,
+	CreatePatientSchema,
 	DashboardPatientListQuerySchema,
 	DashboardPatientListResponse,
 	DashboardPatientUpdateSchema,
@@ -14,7 +16,7 @@ import { Throttle } from "@/core/decorators/throttle";
 import { AccountRole } from "@/database/types/accounts.types";
 
 class DashboardPatientController {
-	@RequireAuth({ role: AccountRole.ADMIN })
+	@RequireAuth({ roles: [AccountRole.ADMIN] })
 	@Throttle({ limit: 10, windowMs: 1000 })
 	async findOne(req: express.Request, res: express.Response<FindOneResponse>) {
 		const { id } = validate(FindOneQuerySchema, req.query);
@@ -23,7 +25,7 @@ class DashboardPatientController {
 		res.json(patient);
 	}
 
-	@RequireAuth({ role: AccountRole.ADMIN })
+	@RequireAuth({ roles: [AccountRole.ADMIN] })
 	@Throttle({ limit: 10, windowMs: 1000 })
 	async list(req: express.Request, res: express.Response<DashboardPatientListResponse>) {
 		const { email, name, phoneNumber, page, limit } = validate(DashboardPatientListQuerySchema, req.query);
@@ -41,7 +43,14 @@ class DashboardPatientController {
 		});
 	}
 
-	@RequireAuth({ role: AccountRole.ADMIN })
+	@RequireAuth({ roles: [AccountRole.ADMIN] })
+	@Throttle({ limit: 10, windowMs: 1000 })
+	async create(req: express.Request, res: express.Response<CreatePatientResponse>) {
+		const patient = await service.create(validate(CreatePatientSchema, req.body));
+		res.status(201).json(patient);
+	}
+
+	@RequireAuth({ roles: [AccountRole.ADMIN] })
 	@Throttle({ limit: 10, windowMs: 1000 })
 	async update(req: express.Request, res: express.Response) {
 		const { id, firstName, lastName, email, phoneNumber, dateOfBirth, pesel } = validate(

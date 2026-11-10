@@ -36,7 +36,7 @@ class DashboardDoctorService {
 	}
 
 	async list(data: {
-		filters: { firstName?: string; lastName?: string };
+		filters: { firstName?: string; lastName?: string; serviceId?: string };
 		page?: number;
 		limit?: number;
 	}): Promise<WithPagination<ClientDoctor>> {
@@ -44,6 +44,7 @@ class DashboardDoctorService {
 			filters: {
 				first_name: data.filters.firstName,
 				last_name: data.filters.lastName,
+				service_id: data.filters.serviceId,
 			},
 			page: data.page ?? 1,
 			limit: data.limit ?? 10,

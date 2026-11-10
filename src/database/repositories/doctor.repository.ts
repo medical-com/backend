@@ -11,6 +11,7 @@ export class DoctorRepository {
 			filters?: {
 				first_name?: string;
 				last_name?: string;
+				service_id?: string;
 			};
 			page?: number;
 			limit?: number;
@@ -18,7 +19,6 @@ export class DoctorRepository {
 		trx?: Knex.Transaction,
 	): Promise<WithPagination<Doctor & { person: Person }>> {
 		const { filters, page = 1, limit = 10 } = data;
-
 		if (!Number.isInteger(page) || page < 1) throw new DatabaseError("Page must be a positive integer");
 		if (!Number.isInteger(limit) || limit < 1) throw new DatabaseError("Limit must be a positive integer");
 		if (limit > 100) throw new DatabaseError("Limit cannot be greater than 100");
@@ -28,6 +28,14 @@ export class DoctorRepository {
 
 			if (filters?.first_name) baseQuery.where("persons.first_name", "ilike", `%${filters.first_name}%`);
 			if (filters?.last_name) baseQuery.where("persons.last_name", "ilike", `%${filters.last_name}%`);
+			if (filters?.service_id) {
+				baseQuery.whereExists(function () {
+					this.select(db.raw("1"))
+						.from("public.services as services")
+						.where("services.id", filters.service_id)
+						.whereRaw("doctors.id = ANY (services.doctor_ids)");
+				});
+			}
 
 			const [doctors, countResult] = await Promise.all([
 				baseQuery

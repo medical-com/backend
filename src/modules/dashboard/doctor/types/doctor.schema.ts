@@ -23,6 +23,7 @@ export type FindOneResponse = ClientDoctor;
 export const ListQuerySchema = z.strictObject({
 	firstName: nameSchema.optional(),
 	lastName: nameSchema.optional(),
+	serviceId: z.uuid().optional(),
 	page: z.coerce.number().int().min(1).optional(),
 	limit: z.coerce.number().int().min(1).max(100).optional(),
 });
@@ -48,15 +49,15 @@ export const ConfirmDoctorInvitationSchema = z.strictObject({
 
 export const UpdateDoctorSchema = z
 	.strictObject({
-	id: z.uuid(),
-	firstName: nameSchema.optional(),
-	lastName: nameSchema.optional(),
-	email: emailSchema.optional(),
-	phoneNumber: phoneNumberSchema.optional(),
-	dateOfBirth: dateSchema.optional(),
-	pesel: peselSchema.optional(),
-	licenseNumber: z.string().trim().min(1).max(100).optional(),
-	specialization: z.string().trim().min(1).max(100).optional(),
+		id: z.uuid(),
+		firstName: nameSchema.optional(),
+		lastName: nameSchema.optional(),
+		email: emailSchema.optional(),
+		phoneNumber: phoneNumberSchema.optional(),
+		dateOfBirth: dateSchema.optional(),
+		pesel: peselSchema.optional(),
+		licenseNumber: z.string().trim().min(1).max(100).optional(),
+		specialization: z.string().trim().min(1).max(100).optional(),
 	})
 	.refine((data) => Object.keys(data).length > 1, {
 		message: "At least one doctor field must be provided",

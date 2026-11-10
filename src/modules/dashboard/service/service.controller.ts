@@ -18,7 +18,7 @@ import {
 } from "./types/service.schema";
 
 export default class DashboardServiceController {
-	@RequireAuth({ role: AccountRole.ADMIN })
+	@RequireAuth({ roles: [AccountRole.ADMIN] })
 	@Throttle({ limit: 10, windowMs: 1000 })
 	async findOne(req: express.Request, res: express.Response<FindOneServiceResponse>) {
 		const { id } = validate(FindOneServiceQuerySchema, req.query);
@@ -26,7 +26,7 @@ export default class DashboardServiceController {
 		res.json(data);
 	}
 
-	@RequireAuth({ role: AccountRole.ADMIN })
+	@RequireAuth({ roles: [AccountRole.ADMIN, AccountRole.RECEPTIONIST] })
 	@Throttle({ limit: 10, windowMs: 1000 })
 	async list(req: express.Request, res: express.Response<ListServiceResponse>) {
 		const { name, category, page, limit } = validate(ListServiceQuerySchema, req.query);
@@ -43,7 +43,7 @@ export default class DashboardServiceController {
 		});
 	}
 
-	@RequireAuth({ role: AccountRole.ADMIN })
+	@RequireAuth({ roles: [AccountRole.ADMIN] })
 	@Throttle({ limit: 10, windowMs: 1000 })
 	async create(req: express.Request, res: express.Response<CreateServiceResponse>) {
 		const data = validate(CreateServiceSchema, req.body);
@@ -51,7 +51,7 @@ export default class DashboardServiceController {
 		res.status(201).json(created);
 	}
 
-	@RequireAuth({ role: AccountRole.ADMIN })
+	@RequireAuth({ roles: [AccountRole.ADMIN] })
 	@Throttle({ limit: 10, windowMs: 1000 })
 	async update(req: express.Request, res: express.Response<UpdateServiceResponse>) {
 		const { id, ...update } = validate(UpdateServiceSchema, req.body);
@@ -59,7 +59,7 @@ export default class DashboardServiceController {
 		res.json(data);
 	}
 
-	@RequireAuth({ role: AccountRole.ADMIN })
+	@RequireAuth({ roles: [AccountRole.ADMIN] })
 	@Throttle({ limit: 10, windowMs: 1000 })
 	async delete(req: express.Request, res: express.Response<DeleteServiceResponse>) {
 		const { id } = validate(DeleteServiceSchema, req.body);

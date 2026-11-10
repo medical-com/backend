@@ -25,6 +25,17 @@ export const DashboardPatientListQuerySchema = z.strictObject({
 export type DashboardPatientListQuery = z.infer<typeof DashboardPatientListQuerySchema>;
 export type DashboardPatientListResponse = WithPaginationResponse<ClientPatient>;
 
+export const CreatePatientSchema = z.strictObject({
+	firstName: nameSchema,
+	lastName: nameSchema,
+	email: emailSchema,
+	phoneNumber: phoneNumberSchema,
+	dateOfBirth: dateSchema,
+	pesel: peselSchema,
+});
+export type CreatePatient = z.infer<typeof CreatePatientSchema>;
+export type CreatePatientResponse = ClientPatient;
+
 export const DashboardPatientUpdateSchema = z
 	.strictObject({
 	id: z.uuid(),

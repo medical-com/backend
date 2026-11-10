@@ -9,7 +9,7 @@ export const FindOneServiceQuerySchema = z.strictObject({
 export type FindOneServiceResponse = ClientService;
 
 export const ListServiceQuerySchema = z.strictObject({
-	name: z.string().trim().min(1).max(16).optional(),
+	name: z.string().trim().min(1).max(255).optional(),
 	category: z.enum(ServiceCategory).optional(),
 	page: z.coerce.number().int().min(1).optional(),
 	limit: z.coerce.number().int().min(1).max(100).optional(),
@@ -17,7 +17,7 @@ export const ListServiceQuerySchema = z.strictObject({
 export type ListServiceResponse = WithPaginationResponse<ClientService>;
 
 export const CreateServiceSchema = z.strictObject({
-	name: z.string().trim().min(1).max(16),
+	name: z.string().trim().min(1).max(255),
 	description: z.string().trim().min(1).max(255),
 	category: z.enum(ServiceCategory),
 	duration: z.coerce.number().int().positive(),
@@ -28,12 +28,12 @@ export type CreateServiceResponse = ClientService;
 
 export const UpdateServiceSchema = z
 	.strictObject({
-	id: z.uuid(),
-	name: z.string().trim().min(1).max(16).optional(),
-	description: z.string().trim().min(1).max(255).optional(),
-	category: z.enum(ServiceCategory).optional(),
-	duration: z.coerce.number().int().positive().optional(),
-	doctorIds: z.array(z.uuid()).optional(),
+		id: z.uuid(),
+		name: z.string().trim().min(1).max(255).optional(),
+		description: z.string().trim().min(1).max(255).optional(),
+		category: z.enum(ServiceCategory).optional(),
+		duration: z.coerce.number().int().positive().optional(),
+		doctorIds: z.array(z.uuid()).optional(),
 	})
 	.refine((data) => Object.keys(data).length > 1, {
 		message: "At least one service field must be provided",
