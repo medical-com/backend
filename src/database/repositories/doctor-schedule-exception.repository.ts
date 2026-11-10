@@ -71,10 +71,15 @@ export class DoctorScheduleExceptionRepository {
 			throw new DatabaseError("Limit must be between 1 and 100");
 
 		try {
-			const query = (trx ?? db)<DoctorScheduleException>("public.doctor_schedule_exceptions")
-				.where({ doctor_id: data.doctorId });
+			const query = (trx ?? db)<DoctorScheduleException>("public.doctor_schedule_exceptions").where({
+				doctor_id: data.doctorId,
+			});
 			const [exceptions, countResult] = await Promise.all([
-				query.clone().orderBy("start_at", "asc").offset((page - 1) * limit).limit(limit),
+				query
+					.clone()
+					.orderBy("start_at", "asc")
+					.offset((page - 1) * limit)
+					.limit(limit),
 				query.clone().clearSelect().count("id as total"),
 			]);
 			const total = Number((countResult[0] as { total?: string | number } | undefined)?.total ?? 0);
@@ -87,6 +92,21 @@ export class DoctorScheduleExceptionRepository {
 				totalPages,
 				hasNextPage: page < totalPages,
 			};
+		} catch (err) {
+			throw new DatabaseError(err);
+		}
+	}
+
+	async findByDoctorAndDateRange(
+		data: { doctorId: string; from: Date; to: Date },
+		trx?: Knex.Transaction,
+	): Promise<DoctorScheduleException[]> {
+		try {
+			return await (trx ?? db)<DoctorScheduleException>("public.doctor_schedule_exceptions")
+				.where({ doctor_id: data.doctorId })
+				.andWhere("start_at", "<=", data.to)
+				.andWhere("end_at", ">=", data.from)
+				.orderBy("start_at", "asc");
 		} catch (err) {
 			throw new DatabaseError(err);
 		}

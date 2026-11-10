@@ -44,19 +44,37 @@ export class DoctorScheduleRepository {
 		} catch (err) {
 			throw new DatabaseError(err);
 		}
-		}
+	}
 
 	async findByDoctorAndDay(
 		data: { doctorId: string; dayOfWeek: number; excludeId?: string },
 		trx?: Knex.Transaction,
 	): Promise<DoctorSchedule | undefined> {
 		try {
-		const query = (trx ?? db)<DoctorSchedule>("public.doctor_schedules")
-			.where({ doctor_id: data.doctorId, day_of_week: data.dayOfWeek });
-		if (data.excludeId) query.whereNot({ id: data.excludeId });
-		return await query.first();
+			const query = (trx ?? db)<DoctorSchedule>("public.doctor_schedules").where({
+				doctor_id: data.doctorId,
+				day_of_week: data.dayOfWeek,
+			});
+			if (data.excludeId) query.whereNot({ id: data.excludeId });
+			return await query.first();
 		} catch (err) {
-		throw new DatabaseError(err);
+			throw new DatabaseError(err);
+		}
+	}
+
+	async findByDoctorAndDateRange(
+		data: { doctorId: string; from: Date; to: Date },
+		trx?: Knex.Transaction,
+	): Promise<DoctorSchedule[]> {
+		try {
+			return await (trx ?? db)<DoctorSchedule>("public.doctor_schedules")
+				.where({ doctor_id: data.doctorId })
+				.andWhere("valid_from", "<=", data.to)
+				.andWhere((builder) => {
+					builder.whereNull("valid_to").orWhere("valid_to", ">=", data.from);
+				});
+		} catch (err) {
+			throw new DatabaseError(err);
 		}
 	}
 
@@ -81,10 +99,9 @@ export class DoctorScheduleRepository {
 
 			if (filters?.doctorId) query.where("schedules.doctor_id", filters.doctorId);
 			if (filters?.doctorName) {
-				query.whereRaw(
-					"concat_ws(' ', persons.first_name, persons.last_name) ilike ?",
-					[`%${filters.doctorName}%`],
-				);
+				query.whereRaw("concat_ws(' ', persons.first_name, persons.last_name) ilike ?", [
+					`%${filters.doctorName}%`,
+				]);
 			}
 
 			const [schedules, countResult] = await Promise.all([

@@ -13,6 +13,9 @@ export default class DashboardAppointmentModule {
 			"/dashboard/appointment/available-dates",
 			async (req, res) => await controller.listAvailableDates(req, res),
 		);
+		router.post("/dashboard/appointment", async (req, res) => await controller.create(req, res));
+		router.get("/dashboard/appointment/list", async (req, res) => await controller.list(req, res));
+		router.get("/dashboard/appointment/find-one", async (req, res) => await controller.findOne(req, res));
 		this.modules.useRouter(router);
 	}
 }
