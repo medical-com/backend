@@ -22,10 +22,15 @@ import {
 	timeString,
 	withTime,
 } from "@/core/date";
-import { ClientAvailableDate } from "@/types/client/appointments.types";
 import type { CreateAppointment } from "./types/appointment.schema";
-import type { ClientAppointment } from "@/types/client/appointment.type";
+import type { ClientAppointment, ClientAvailableDate } from "@/types/client/appointment.type";
 import type { WithPagination } from "@/types/pagination.type";
+import {
+	appointmentToTimeIntervals,
+	exceptionToTimeIntervals,
+	listAvailableTimeIntervals,
+	scheduleToTimeIntervals,
+} from "./appointment.utils";
 
 const MAX_DAYS_IN_ADVANCE = 7;
 class DashboardAppointmentService {
@@ -116,9 +121,8 @@ class DashboardAppointmentService {
 		if (!service) throw new AppError("Service not found", 404);
 
 		const doctorIds = data.doctorId ? [data.doctorId] : service.doctor_ids;
-		if (data.doctorId && !service.doctor_ids.includes(data.doctorId)) {
+		if (data.doctorId && !service.doctor_ids.includes(data.doctorId))
 			throw new AppError("Doctor cannot perform this service", 400);
-		}
 
 		const rangeFrom = dayStart(data.from ?? new Date());
 		const rangeTo = dayEnd(data.to ?? plusDays(rangeFrom, MAX_DAYS_IN_ADVANCE));
@@ -130,96 +134,118 @@ class DashboardAppointmentService {
 		for (const doctor of doctors) {
 			if (!doctor) continue;
 
-			const [schedules, exceptions, appointments] = await Promise.all([
-				doctorScheduleRepository.findByDoctorAndDateRange({
+			await this.listAvailableDatesForDoctor({
+				serviceId: data.serviceId,
+				doctorId: doctor.id,
+				from: rangeFrom,
+				to: rangeTo,
+			}).then((dates) => availableDates.push(...dates));
+		}
+
+		return availableDates;
+	}
+
+	async listAvailableDatesForDoctor(data: {
+		serviceId: string;
+		doctorId: string;
+		from?: Date;
+		to?: Date;
+	}): Promise<ClientAvailableDate[]> {
+		const doctor = await doctorRepository.findWithPerson({ doctorId: data.doctorId });
+		if (!doctor) throw new AppError("Doctor not found", 404);
+		const service = await serviceRepository.findById({ id: data.serviceId });
+		if (!service) throw new AppError("Doctor has no services", 404);
+
+		if (!service.doctor_ids.includes(data.doctorId)) throw new AppError("Doctor cannot perform this service", 400);
+
+		const rangeFrom = dayStart(data.from ?? new Date());
+		const rangeTo = dayEnd(data.to ?? plusDays(rangeFrom, MAX_DAYS_IN_ADVANCE));
+		if (isBefore(rangeTo, rangeFrom)) throw new AppError("Invalid date range", 400);
+
+		const [schedules, exceptions, appointments] = await Promise.all([
+			doctorScheduleRepository.findByDoctorAndDateRange({
+				doctorId: doctor.id,
+				from: rangeFrom,
+				to: rangeTo,
+			}),
+			doctorScheduleExceptionRepository.findByDoctorAndDateRange({
+				doctorId: doctor.id,
+				from: rangeFrom,
+				to: rangeTo,
+			}),
+			appointmentRepository.list({
+				filters: {
 					doctorId: doctor.id,
 					from: rangeFrom,
 					to: rangeTo,
-				}),
-				doctorScheduleExceptionRepository.findByDoctorAndDateRange({
-					doctorId: doctor.id,
-					from: rangeFrom,
-					to: rangeTo,
-				}),
-				appointmentRepository.list({
-					filters: {
-						doctorId: doctor.id,
-						from: rangeFrom,
-						to: rangeTo,
-					},
-					limit: 100,
-				}),
-			]);
+				},
+				limit: 100,
+			}),
+		]);
 
-			for (let date = rangeFrom; !isBefore(rangeTo, date); date = plusDays(date, 1)) {
-				const schedule = schedules.find(
-					(item) =>
-						item.day_of_week === isoDayOfWeek(date) &&
-						!isBefore(date, dayStart(item.valid_from)) &&
-						(!item.valid_to || !isBefore(dayStart(item.valid_to), date)),
-				);
-				const dateKey = calendarDate(date);
-				const dayExceptions = exceptions.filter(
-					(item) => calendarDate(item.start_at) <= dateKey && calendarDate(item.end_at) >= dateKey,
-				);
-				const intervals: Array<{ start: Date; end: Date }> = schedule
-					? [{ start: withTime(date, schedule.start_time), end: withTime(date, schedule.end_time) }]
-					: [];
-				intervals.push(
-					...dayExceptions
-						.filter((exception) => exception.type === DoctorScheduleExceptionType.AVAILABLE)
-						.map((exception) => ({
-							start: isBefore(exception.start_at, dayStart(date)) ? dayStart(date) : exception.start_at,
-							end: isBefore(dayEnd(date), exception.end_at) ? dayEnd(date) : exception.end_at,
-						})),
-				);
+		const availableDates: ClientAvailableDate[] = [];
+		for (let date = rangeFrom; !isBefore(rangeTo, date); date = plusDays(date, 1)) {
+			const schedule = schedules.find(
+				(item) =>
+					item.day_of_week === isoDayOfWeek(date) &&
+					!isBefore(date, dayStart(item.valid_from)) &&
+					(!item.valid_to || !isBefore(dayStart(item.valid_to), date)),
+			);
+			const dateKey = calendarDate(date);
+			const dayExceptions = exceptions.filter(
+				(item) => calendarDate(item.start_at) <= dateKey && calendarDate(item.end_at) >= dateKey,
+			);
 
-				const slots: Date[] = [];
-				for (const interval of intervals) {
-					for (
-						let slot = interval.start;
-						isBefore(plusMinutes(slot, service.duration), interval.end) ||
-						slot.getTime() === interval.end.getTime();
-						slot = plusMinutes(slot, service.duration)
-					) {
-						const slotEnd = plusMinutes(slot, service.duration);
-						const unavailable = dayExceptions.some(
-							(exception) =>
-								exception.type === DoctorScheduleExceptionType.UNAVAILABLE &&
-								isBefore(slot, exception.end_at) &&
-								isBefore(exception.start_at, slotEnd),
+			const { timeIntervals } = listAvailableTimeIntervals(
+				schedule ? [scheduleToTimeIntervals(schedule)] : [],
+				dayExceptions
+					.filter((exception) => exception.type === DoctorScheduleExceptionType.AVAILABLE)
+					.map((exception) => exceptionToTimeIntervals(exception, date)),
+				dayExceptions
+					.filter((exception) => exception.type === DoctorScheduleExceptionType.UNAVAILABLE)
+					.map((exception) => exceptionToTimeIntervals(exception, date)),
+				appointments.data
+					.filter(
+						(appointment) =>
+							appointment.status !== AppointmentStatus.CANCELLED &&
+							appointment.status !== AppointmentStatus.NO_SHOW,
+					)
+					.filter(
+						(appointment) =>
+							isBefore(appointment.start_at, dayEnd(date)) &&
+							isBefore(dayStart(date), appointment.end_at),
+					)
+					.map((appointment) => appointmentToTimeIntervals(appointment, date)),
+			);
+
+			const slots = timeIntervals
+				.flatMap(({ start, end }) => {
+					const intervalSlots: string[] = [];
+					const [startHours = 0, startMinutes = 0] = start.split(":").map(Number);
+					const [endHours = 0, endMinutes = 0] = end.split(":").map(Number);
+					const intervalStart = startHours * 60 + startMinutes;
+					const intervalEnd = endHours * 60 + endMinutes;
+					for (let slot = intervalStart; slot + service.duration <= intervalEnd; slot += service.duration) {
+						intervalSlots.push(
+							`${String(Math.floor(slot / 60)).padStart(2, "0")}:${String(slot % 60).padStart(2, "0")}`,
 						);
-						const booked = appointments.data.some(
-							(appointment) =>
-								appointment.status !== AppointmentStatus.CANCELLED &&
-								appointment.status !== AppointmentStatus.NO_SHOW &&
-								isBefore(slot, appointment.end_at) &&
-								isBefore(appointment.start_at, slotEnd),
-						);
-
-						if (
-							!unavailable &&
-							!booked &&
-							!slots.some((existing) => existing.getTime() === slot.getTime())
-						) {
-							slots.push(slot);
-						}
 					}
-				}
+					return intervalSlots;
+				})
+				.filter((slot, index, allSlots) => allSlots.indexOf(slot) === index);
 
-				if (slots.length > 0) {
-					availableDates.push({
-						id: `${doctor.id}-${dateKey}`,
-						date: dateKey,
-						doctor: {
-							id: doctor.id,
-							firstName: doctor.person.first_name,
-							lastName: doctor.person.last_name,
-						},
-						serviceId: data.serviceId,
-						slots: slots.map(timeString),
-					});
-				}
+			if (slots.length > 0) {
+				availableDates.push({
+					id: `${doctor.id}-${dateKey}`,
+					date: dateKey,
+					doctor: {
+						id: doctor.id,
+						firstName: doctor.person.first_name,
+						lastName: doctor.person.last_name,
+					},
+					serviceId: data.serviceId,
+					slots,
+				});
 			}
 		}
 
@@ -231,7 +257,7 @@ class DashboardAppointmentService {
 		page?: number;
 		limit?: number;
 	}): Promise<WithPagination<ClientAppointment>> {
-		return appointmentRepository.listDetailed(data);
+		return await appointmentRepository.listDetailed(data);
 	}
 
 	async findOne(id: string): Promise<ClientAppointment> {

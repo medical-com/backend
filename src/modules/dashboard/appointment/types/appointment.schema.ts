@@ -1,5 +1,4 @@
-import { ClientAvailableDate } from "@/types/client/appointments.types";
-import type { ClientAppointment } from "@/types/client/appointment.type";
+import type { ClientAppointment, ClientAvailableDate } from "@/types/client/appointment.type";
 import type { WithPaginationResponse } from "@/types/pagination.type";
 import { calendarDateSchema, emailSchema, nameSchema, peselSchema, phoneNumberSchema } from "@/types/zod.types";
 import { z } from "zod";
