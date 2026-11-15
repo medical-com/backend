@@ -5,6 +5,7 @@ import type { Knex } from "knex";
 import type { Appointment, AppointmentStatus } from "../types";
 import type { ClientAppointment } from "@/types/client/appointment.type";
 import type { WithPagination } from "@/types/pagination.type";
+import { getPaginationParams, withPagination } from "@/core/pagination";
 
 export class AppointmentRepository {
 	async findDetailedById(data: { id: string }, trx?: Knex.Transaction): Promise<ClientAppointment | undefined> {
@@ -24,9 +25,8 @@ export class AppointmentRepository {
 		},
 		trx?: Knex.Transaction,
 	): Promise<WithPagination<ClientAppointment>> {
-		const { filters, page = 1, limit = 100 } = data;
-		if (!Number.isInteger(page) || page < 1) throw new DatabaseError("Page must be a positive integer");
-		if (!Number.isInteger(limit) || limit < 1 || limit > 100) throw new DatabaseError("Limit must be between 1 and 100");
+		const { filters } = data;
+		const pagination = getPaginationParams(data, 100);
 
 		try {
 			const query = this.detailedQuery(trx);
@@ -41,19 +41,15 @@ export class AppointmentRepository {
 			}
 
 			const [rows, countResult] = await Promise.all([
-				query.clone().orderBy("appointments.start_at", "asc").offset((page - 1) * limit).limit(limit),
+				query.clone().orderBy("appointments.start_at", "asc").offset(pagination.offset).limit(pagination.limit),
 				query.clone().clearSelect().clearOrder().countDistinct("appointments.id as total"),
 			]);
 			const total = Number(countResult[0]?.total ?? 0);
-			const totalPages = Math.ceil(total / limit);
-			return {
-				data: rows.map((row) => this.toClientAppointment(row)),
+			return withPagination(
+				rows.map((row) => this.toClientAppointment(row)),
 				total,
-				page,
-				limit,
-				totalPages,
-				hasNextPage: page < totalPages,
-			};
+				pagination,
+			);
 		} catch (err) {
 			throw new DatabaseError(err);
 		}
@@ -80,9 +76,8 @@ export class AppointmentRepository {
 		},
 		trx?: Knex.Transaction,
 	): Promise<WithPagination<Appointment>> {
-		const { filters, page = 1, limit = 10 } = data;
-		if (page < 1) throw new DatabaseError("Page must be greater than 0");
-		if (limit < 1 || limit > 100) throw new DatabaseError("Limit must be between 1 and 100");
+		const { filters } = data;
+		const pagination = getPaginationParams(data);
 
 		try {
 			const query = (trx ?? db)<Appointment>("public.appointments").where((builder) => {
@@ -96,21 +91,12 @@ export class AppointmentRepository {
 				query
 					.clone()
 					.orderBy("start_at", "asc")
-					.offset((page - 1) * limit)
-					.limit(limit),
+					.offset(pagination.offset)
+					.limit(pagination.limit),
 				query.clone().clearSelect().count("id as total"),
 			]);
 			const total = Number((countResult[0] as { total?: string | number } | undefined)?.total ?? 0);
-			const totalPages = Math.ceil(total / limit);
-
-			return {
-				data: appointments,
-				total,
-				page,
-				limit,
-				totalPages,
-				hasNextPage: page < totalPages,
-			};
+			return withPagination(appointments, total, pagination);
 		} catch (err) {
 			throw new DatabaseError(err);
 		}

@@ -7,10 +7,11 @@ import { hashPassword, verifyPassword } from "@/core/security/password";
 import { createSession, destroySession } from "@/core/security/session.store";
 import { AccountRole, AccountStatus } from "@/database/types";
 import type { ClientAccount } from "@/types/client/account.type";
-import { accountRepository, patientRepository, personRepository } from "@/database/repositories";
+import { accountRepository, patientRepository } from "@/database/repositories";
 import redis from "@/core/redis";
 import type { Knex } from "knex";
 import { mailService } from "@/core/mail";
+import { createPerson } from "../../core/services/person.service";
 
 export default class AuthService {
 	async register(data: {
@@ -23,21 +24,10 @@ export default class AuthService {
 		password: string;
 	}): Promise<boolean> {
 		const account = await db.transaction(async (trx) => {
-			const personWithPeselExists = await personRepository.findByPesel({ pesel: data.pesel }, trx);
-			if (personWithPeselExists) throw new Error("Person with this pesel already exists");
-			const personWithEmailExists = await personRepository.findByEmail({ email: data.email }, trx);
-			if (personWithEmailExists) throw new Error("Person with this email already exists");
-			const personWithPhoneExists = await personRepository.findByPhone({ phone: data.phoneNumber }, trx);
-			if (personWithPhoneExists) throw new Error("Person with this phone number already exists");
-
-			const person = await personRepository.insert(
+			const person = await createPerson(
 				{
-					first_name: data.firstName,
-					last_name: data.lastName,
-					email: data.email,
+					...data,
 					phone: data.phoneNumber,
-					pesel: data.pesel,
-					date_of_birth: new Date(data.dateOfBirth),
 				},
 				trx,
 			);

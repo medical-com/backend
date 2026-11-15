@@ -13,25 +13,25 @@ import {
 } from "@/types/zod.types";
 import { z } from "zod";
 
-export const FindOneQuerySchema = z.strictObject({
+export const DashboardDoctorFindOneQuerySchema = z.strictObject({
 	id: z.uuid(),
 });
-export type FindOneQuery = z.infer<typeof FindOneQuerySchema>;
+export type DashboardDoctorFindOneQuery = z.infer<typeof DashboardDoctorFindOneQuerySchema>;
 
-export type FindOneResponse = ClientDoctor;
+export type DashboardDoctorFindOneResponse = ClientDoctor;
 
-export const ListQuerySchema = z.strictObject({
+export const DashboardDoctorListQuerySchema = z.strictObject({
 	firstName: nameSchema.optional(),
 	lastName: nameSchema.optional(),
 	serviceId: z.uuid().optional(),
 	page: z.coerce.number().int().min(1).optional(),
 	limit: z.coerce.number().int().min(1).max(100).optional(),
 });
-export type ListQuery = z.infer<typeof ListQuerySchema>;
+export type DashboardDoctorListQuery = z.infer<typeof DashboardDoctorListQuerySchema>;
 
-export type ListDoctorsResponse = WithPaginationResponse<ClientDoctor>;
+export type DashboardDoctorListResponse = WithPaginationResponse<ClientDoctor>;
 
-export const CreateDoctorSchema = z.strictObject({
+export const DashboardDoctorSchema = z.strictObject({
 	firstName: nameSchema,
 	lastName: nameSchema,
 	pesel: peselSchema,
@@ -41,13 +41,13 @@ export const CreateDoctorSchema = z.strictObject({
 	licenseNumber: z.string().trim().min(1).max(100),
 	specialization: z.string().trim().min(1).max(100),
 });
-export type CreateDoctor = z.infer<typeof CreateDoctorSchema>;
+export type DashboardDoctor = z.infer<typeof DashboardDoctorSchema>;
 
-export const ConfirmDoctorInvitationSchema = z.strictObject({
+export const DashboardDoctorConfirmInvitationSchema = z.strictObject({
 	token: z.uuid(),
 });
 
-export const UpdateDoctorSchema = z
+export const DashboardDoctorUpdateSchema = z
 	.strictObject({
 		id: z.uuid(),
 		firstName: nameSchema.optional(),
@@ -62,17 +62,17 @@ export const UpdateDoctorSchema = z
 	.refine((data) => Object.keys(data).length > 1, {
 		message: "At least one doctor field must be provided",
 	});
-export type UpdateDoctor = z.infer<typeof UpdateDoctorSchema>;
-export type UpdateDoctorResponse = ClientDoctor;
+export type DashboardDoctorUpdate = z.infer<typeof DashboardDoctorUpdateSchema>;
+export type DashboardDoctorUpdateResponse = ClientDoctor;
 
-const timeSchema = z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/, "Invalid time");
+const DashboardDoctorTimeSchema = z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/, "Invalid time");
 
-export const CreateDoctorScheduleSchema = z
+export const DashboardDoctorScheduleSchema = z
 	.strictObject({
 		doctorId: z.uuid(),
 		dayOfWeek: z.coerce.number().int().min(1).max(7),
-		startTime: timeSchema,
-		endTime: timeSchema,
+		startTime: DashboardDoctorTimeSchema,
+		endTime: DashboardDoctorTimeSchema,
 		validFrom: calendarDateSchema,
 		validTo: calendarDateSchema.nullable().optional(),
 	})
@@ -84,15 +84,15 @@ export const CreateDoctorScheduleSchema = z
 		message: "Valid-to date must not be before valid-from date",
 		path: ["validTo"],
 	});
-export type CreateDoctorSchedule = z.infer<typeof CreateDoctorScheduleSchema>;
+export type DashboardDoctorSchedule = z.infer<typeof DashboardDoctorScheduleSchema>;
 
-export const UpdateDoctorScheduleSchema = z
+export const DashboardDoctorScheduleUpdateSchema = z
 	.strictObject({
 		id: z.uuid(),
 		doctorId: z.uuid().optional(),
 		dayOfWeek: z.coerce.number().int().min(1).max(7).optional(),
-		startTime: timeSchema.optional(),
-		endTime: timeSchema.optional(),
+		startTime: DashboardDoctorTimeSchema.optional(),
+		endTime: DashboardDoctorTimeSchema.optional(),
 		validFrom: calendarDateSchema.optional(),
 		validTo: calendarDateSchema.nullable().optional(),
 	})
@@ -105,19 +105,19 @@ export const UpdateDoctorScheduleSchema = z
 				data.validTo >= data.validFrom),
 		{ message: "Invalid schedule time or date range" },
 	);
-export type UpdateDoctorSchedule = z.infer<typeof UpdateDoctorScheduleSchema>;
+export type DashboardDoctorScheduleUpdate = z.infer<typeof DashboardDoctorScheduleUpdateSchema>;
 
-export const ListDoctorSchedulesSchema = z.strictObject({
+export const DashboardDoctorScheduleListQuerySchema = z.strictObject({
 	doctorId: z.uuid().optional(),
 	doctorName: z.string().trim().min(1).optional(),
 	page: z.coerce.number().int().min(1).optional(),
 	limit: z.coerce.number().int().min(1).max(100).optional(),
 });
-export type ListDoctorSchedules = z.infer<typeof ListDoctorSchedulesSchema>;
-export type DoctorScheduleResponse = ClientDoctorSchedule;
-export type DoctorScheduleListResponse = WithPaginationResponse<ClientDoctorSchedule>;
+export type DashboardDoctorScheduleListQuery = z.infer<typeof DashboardDoctorScheduleListQuerySchema>;
+export type DashboardDoctorScheduleResponse = ClientDoctorSchedule;
+export type DashboardDoctorScheduleListResponse = WithPaginationResponse<ClientDoctorSchedule>;
 
-export const CreateDoctorScheduleExceptionSchema = z
+export const DashboardDoctorScheduleExceptionSchema = z
 	.strictObject({
 		doctorId: z.uuid(),
 		startAt: dateTimeSchema,
@@ -129,9 +129,9 @@ export const CreateDoctorScheduleExceptionSchema = z
 		message: "Start date-time must be before end date-time",
 		path: ["endAt"],
 	});
-export type CreateDoctorScheduleException = z.infer<typeof CreateDoctorScheduleExceptionSchema>;
+export type DashboardDoctorScheduleException = z.infer<typeof DashboardDoctorScheduleExceptionSchema>;
 
-export const UpdateDoctorScheduleExceptionSchema = z
+export const DashboardDoctorScheduleExceptionUpdateSchema = z
 	.strictObject({
 		id: z.uuid(),
 		doctorId: z.uuid().optional(),
@@ -144,16 +144,16 @@ export const UpdateDoctorScheduleExceptionSchema = z
 		message: "Start date-time must be before end date-time",
 		path: ["endAt"],
 	});
-export type UpdateDoctorScheduleException = z.infer<typeof UpdateDoctorScheduleExceptionSchema>;
+export type DashboardDoctorScheduleExceptionUpdate = z.infer<typeof DashboardDoctorScheduleExceptionUpdateSchema>;
 
-export const DeleteDoctorScheduleExceptionSchema = z.strictObject({
+export const DashboardDoctorScheduleExceptionDeleteSchema = z.strictObject({
 	id: z.uuid(),
 });
-export const ListDoctorScheduleExceptionsSchema = z.strictObject({
+export const DashboardDoctorScheduleExceptionListQuerySchema = z.strictObject({
 	doctorId: z.uuid(),
 	page: z.coerce.number().int().min(1).optional(),
 	limit: z.coerce.number().int().min(1).max(100).optional(),
 });
-export type DeleteDoctorScheduleExceptionResponse = { success: boolean };
-export type DoctorScheduleExceptionResponse = ClientDoctorScheduleException;
-export type DoctorScheduleExceptionListResponse = WithPaginationResponse<ClientDoctorScheduleException>;
+export type DashboardDoctorScheduleExceptionDeleteResponse = { success: boolean };
+export type DashboardDoctorScheduleExceptionResponse = ClientDoctorScheduleException;
+export type DashboardDoctorScheduleExceptionListResponse = WithPaginationResponse<ClientDoctorScheduleException>;

@@ -4,6 +4,7 @@ import { DatabaseError } from "@/core/errors/database-error";
 import type { WithPagination } from "@/types/pagination.type";
 import type { Knex } from "knex";
 import type { DoctorScheduleException } from "../types";
+import { getPaginationParams, withPagination } from "@/core/pagination";
 
 export class DoctorScheduleExceptionRepository {
 	async insert(
@@ -65,10 +66,7 @@ export class DoctorScheduleExceptionRepository {
 		data: { doctorId: string; page?: number; limit?: number },
 		trx?: Knex.Transaction,
 	): Promise<WithPagination<DoctorScheduleException>> {
-		const { page = 1, limit = 100 } = data;
-		if (!Number.isInteger(page) || page < 1) throw new DatabaseError("Page must be a positive integer");
-		if (!Number.isInteger(limit) || limit < 1 || limit > 100)
-			throw new DatabaseError("Limit must be between 1 and 100");
+		const pagination = getPaginationParams(data, 100);
 
 		try {
 			const query = (trx ?? db)<DoctorScheduleException>("public.doctor_schedule_exceptions").where({
@@ -78,20 +76,12 @@ export class DoctorScheduleExceptionRepository {
 				query
 					.clone()
 					.orderBy("start_at", "asc")
-					.offset((page - 1) * limit)
-					.limit(limit),
+					.offset(pagination.offset)
+					.limit(pagination.limit),
 				query.clone().clearSelect().count("id as total"),
 			]);
 			const total = Number((countResult[0] as { total?: string | number } | undefined)?.total ?? 0);
-			const totalPages = Math.ceil(total / limit);
-			return {
-				data: exceptions,
-				total,
-				page,
-				limit,
-				totalPages,
-				hasNextPage: page < totalPages,
-			};
+			return withPagination(exceptions, total, pagination);
 		} catch (err) {
 			throw new DatabaseError(err);
 		}

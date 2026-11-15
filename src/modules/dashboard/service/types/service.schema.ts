@@ -3,30 +3,30 @@ import type { WithPaginationResponse } from "@/types/pagination.type";
 import { ServiceCategory } from "@/database/types";
 import { z } from "zod";
 
-export const FindOneServiceQuerySchema = z.strictObject({
+export const DashboardServiceFindOneQuerySchema = z.strictObject({
 	id: z.uuid(),
 });
-export type FindOneServiceResponse = ClientService;
+export type DashboardServiceFindOneResponse = ClientService;
 
-export const ListServiceQuerySchema = z.strictObject({
+export const DashboardServiceListQuerySchema = z.strictObject({
 	name: z.string().trim().min(1).max(255).optional(),
 	category: z.enum(ServiceCategory).optional(),
 	page: z.coerce.number().int().min(1).optional(),
 	limit: z.coerce.number().int().min(1).max(100).optional(),
 });
-export type ListServiceResponse = WithPaginationResponse<ClientService>;
+export type DashboardServiceListResponse = WithPaginationResponse<ClientService>;
 
-export const CreateServiceSchema = z.strictObject({
+export const DashboardServiceSchema = z.strictObject({
 	name: z.string().trim().min(1).max(255),
 	description: z.string().trim().min(1).max(255),
 	category: z.enum(ServiceCategory),
 	duration: z.coerce.number().int().positive(),
 	doctorIds: z.array(z.uuid()),
 });
-export type CreateService = z.infer<typeof CreateServiceSchema>;
-export type CreateServiceResponse = ClientService;
+export type DashboardService = z.infer<typeof DashboardServiceSchema>;
+export type DashboardServiceResponse = ClientService;
 
-export const UpdateServiceSchema = z
+export const DashboardServiceUpdateSchema = z
 	.strictObject({
 		id: z.uuid(),
 		name: z.string().trim().min(1).max(255).optional(),
@@ -38,8 +38,8 @@ export const UpdateServiceSchema = z
 	.refine((data) => Object.keys(data).length > 1, {
 		message: "At least one service field must be provided",
 	});
-export type UpdateService = z.infer<typeof UpdateServiceSchema>;
-export type UpdateServiceResponse = ClientService;
+export type DashboardServiceUpdate = z.infer<typeof DashboardServiceUpdateSchema>;
+export type DashboardServiceUpdateResponse = ClientService;
 
-export const DeleteServiceSchema = z.strictObject({ id: z.uuid() });
-export type DeleteServiceResponse = { success: boolean };
+export const DashboardServiceDeleteSchema = z.strictObject({ id: z.uuid() });
+export type DashboardServiceDeleteResponse = { success: boolean };

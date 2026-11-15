@@ -9,11 +9,11 @@ import {
 } from "@/types/zod.types";
 import { z } from "zod";
 
-export const FindOneQuerySchema = z.strictObject({
+export const DashboardPatientFindOneQuerySchema = z.strictObject({
 	id: z.uuid(),
 });
-export type FindOneQuery = z.infer<typeof FindOneQuerySchema>;
-export type FindOneResponse = ClientPatient;
+export type DashboardPatientFindOneQuery = z.infer<typeof DashboardPatientFindOneQuerySchema>;
+export type DashboardPatientFindOneResponse = ClientPatient;
 
 export const DashboardPatientListQuerySchema = z.strictObject({
 	name: nameSchema.optional(),
@@ -25,7 +25,7 @@ export const DashboardPatientListQuerySchema = z.strictObject({
 export type DashboardPatientListQuery = z.infer<typeof DashboardPatientListQuerySchema>;
 export type DashboardPatientListResponse = WithPaginationResponse<ClientPatient>;
 
-export const CreatePatientSchema = z.strictObject({
+export const DashboardPatientSchema = z.strictObject({
 	firstName: nameSchema,
 	lastName: nameSchema,
 	email: emailSchema,
@@ -33,8 +33,8 @@ export const CreatePatientSchema = z.strictObject({
 	dateOfBirth: dateSchema,
 	pesel: peselSchema,
 });
-export type CreatePatient = z.infer<typeof CreatePatientSchema>;
-export type CreatePatientResponse = ClientPatient;
+export type DashboardPatient = z.infer<typeof DashboardPatientSchema>;
+export type DashboardPatientResponse = ClientPatient;
 
 export const DashboardPatientUpdateSchema = z
 	.strictObject({

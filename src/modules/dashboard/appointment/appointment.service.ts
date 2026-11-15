@@ -7,22 +7,11 @@ import {
 	doctorScheduleRepository,
 	serviceRepository,
 	patientRepository,
-	personRepository,
 } from "@/database/repositories";
 import { AppointmentStatus, DoctorScheduleExceptionType } from "@/database/types";
 import type { Appointment } from "@/database/types";
-import {
-	calendarDate,
-	dayEnd,
-	dayStart,
-	isoDayOfWeek,
-	isBefore,
-	plusDays,
-	plusMinutes,
-	timeString,
-	withTime,
-} from "@/core/date";
-import type { CreateAppointment } from "./types/appointment.schema";
+import { calendarDate, dayEnd, dayStart, isoDayOfWeek, isBefore, plusDays, plusMinutes, withTime } from "@/core/date";
+import type { DashboardAppointment } from "./types/appointment.schema";
 import type { ClientAppointment, ClientAvailableDate } from "@/types/client/appointment.type";
 import type { WithPagination } from "@/types/pagination.type";
 import {
@@ -31,10 +20,11 @@ import {
 	listAvailableTimeIntervals,
 	scheduleToTimeIntervals,
 } from "./appointment.utils";
+import { createPerson } from "@/core/services/person.service";
 
 const MAX_DAYS_IN_ADVANCE = 7;
 class DashboardAppointmentService {
-	async create(data: CreateAppointment): Promise<Appointment> {
+	async create(data: DashboardAppointment): Promise<Appointment> {
 		const service = await serviceRepository.findById({ id: data.serviceId });
 		if (!service) throw new AppError("Service not found", 404);
 
@@ -70,26 +60,14 @@ class DashboardAppointmentService {
 
 			let patientId = data.patientId;
 			if (data.newPatient) {
-				const [existingPesel, existingEmail, existingPhone] = await Promise.all([
-					personRepository.findByPesel({ pesel: data.newPatient.pesel }, trx),
-					personRepository.findByEmail({ email: data.newPatient.email }, trx),
-					personRepository.findByPhone({ phone: data.newPatient.phoneNumber }, trx),
-				]);
-				if (existingPesel) throw new AppError("PESEL already exists", 409);
-				if (existingEmail) throw new AppError("Email already exists", 409);
-				if (existingPhone) throw new AppError("Phone number already exists", 409);
-
-				const person = await personRepository.insert(
+				const person = await createPerson(
 					{
-						first_name: data.newPatient.firstName,
-						last_name: data.newPatient.lastName,
-						email: data.newPatient.email,
+						...data.newPatient,
 						phone: data.newPatient.phoneNumber,
-						date_of_birth: data.newPatient.dateOfBirth,
-						pesel: data.newPatient.pesel,
 					},
 					trx,
 				);
+
 				const patient = await patientRepository.insert({ person_id: person.id }, trx);
 				patientId = patient.id;
 			} else if (!patientId || !(await patientRepository.findWithPerson({ id: patientId }, trx))) {

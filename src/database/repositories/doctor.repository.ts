@@ -4,6 +4,7 @@ import { DatabaseError } from "@/core/errors/database-error";
 import { Knex } from "knex";
 import { Doctor, Person } from "../types";
 import { WithPagination } from "@/types/pagination.type";
+import { getPaginationParams, withPagination } from "@/core/pagination";
 
 export class DoctorRepository {
 	async listWithPerson(
@@ -18,10 +19,8 @@ export class DoctorRepository {
 		},
 		trx?: Knex.Transaction,
 	): Promise<WithPagination<Doctor & { person: Person }>> {
-		const { filters, page = 1, limit = 10 } = data;
-		if (!Number.isInteger(page) || page < 1) throw new DatabaseError("Page must be a positive integer");
-		if (!Number.isInteger(limit) || limit < 1) throw new DatabaseError("Limit must be a positive integer");
-		if (limit > 100) throw new DatabaseError("Limit cannot be greater than 100");
+		const { filters } = data;
+		const pagination = getPaginationParams(data);
 
 		try {
 			const baseQuery = this.doctorWithPersonQuery(trx);
@@ -41,22 +40,17 @@ export class DoctorRepository {
 				baseQuery
 					.clone()
 					.orderBy("doctors.id", "asc")
-					.offset((page - 1) * limit)
-					.limit(limit),
+					.offset(pagination.offset)
+					.limit(pagination.limit),
 				baseQuery.clone().clearSelect().clearOrder().countDistinct("doctors.id as total"),
 			]);
 
 			const total = Number(countResult[0]?.total ?? 0);
-			const totalPages = Math.ceil(total / limit);
-
-			return {
-				data: doctors.map((doctor) => this.toDoctorWithPerson(doctor)),
+			return withPagination(
+				doctors.map((doctor) => this.toDoctorWithPerson(doctor)),
 				total,
-				page,
-				limit,
-				totalPages,
-				hasNextPage: page < totalPages,
-			};
+				pagination,
+			);
 		} catch (err) {
 			throw new DatabaseError(err);
 		}
