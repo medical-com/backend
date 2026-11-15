@@ -5,5 +5,6 @@ export const paths = {
 	create: "/dashboard/appointment",
 	list: "/dashboard/appointment/list",
 	findOne: "/dashboard/appointment/find-one",
+	updateStatus: "/dashboard/appointment/update-status",
 } as const;
 export type DashboardAppointmentPaths = Flatten<typeof paths>;

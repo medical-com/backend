@@ -12,6 +12,8 @@ import {
 	type DashboardAppointmentListResponse,
 	DashboardAppointmentListAvailableDatesQuerySchema,
 	type DashboardAppointmentListAvailableDatesResponse,
+	DashboardAppointmentUpdateStatusSchema,
+	DashboardAppointmentUpdateStatusResponse,
 } from "./types/appointment.schema";
 import { dashboardAppointmentService as service } from "./appointment.service";
 
@@ -59,6 +61,15 @@ class DashboardAppointmentController {
 	async findOne(req: express.Request, res: express.Response<DashboardAppointmentFindOneResponse>) {
 		const { id } = validate(DashboardAppointmentFindOneQuerySchema, req.query);
 		res.json(await service.findOne(id));
+	}
+
+	@RequireAuth({ roles: [AccountRole.ADMIN, AccountRole.RECEPTIONIST] })
+	@Throttle({ limit: 30, windowMs: 1000 })
+	async updateStatus(req: express.Request, res: express.Response<DashboardAppointmentUpdateStatusResponse>) {
+		const { id, status } = validate(DashboardAppointmentUpdateStatusSchema, req.body);
+		const appointment = await service.updateStatus({ id, status });
+
+		return res.json({ status: appointment.status });
 	}
 }
 

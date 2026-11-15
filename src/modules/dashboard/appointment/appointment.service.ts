@@ -243,5 +243,17 @@ class DashboardAppointmentService {
 		if (!appointment) throw new AppError("Appointment not found", 404);
 		return appointment;
 	}
+
+	async updateStatus(data: { id: string; status: AppointmentStatus }): Promise<ClientAppointment> {
+		const appointment = await appointmentRepository.findById({ id: data.id });
+		if (!appointment) throw new AppError("Appointment not found", 404);
+
+		await appointmentRepository.updateStatus({ id: data.id, status: data.status });
+
+		const updatedAppointment = await appointmentRepository.findDetailedById({ id: data.id });
+		if (!updatedAppointment) throw new AppError("Appointment not found after update", 404);
+
+		return updatedAppointment;
+	}
 }
 export const dashboardAppointmentService = new DashboardAppointmentService();

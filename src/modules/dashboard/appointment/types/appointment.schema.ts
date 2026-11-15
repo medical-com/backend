@@ -1,3 +1,4 @@
+import { AppointmentStatus } from "@/database/types/appointments.types";
 import type { ClientAppointment, ClientAvailableDate } from "@/types/client/appointment.type";
 import type { WithPaginationResponse } from "@/types/pagination.type";
 import { calendarDateSchema, emailSchema, nameSchema, peselSchema, phoneNumberSchema } from "@/types/zod.types";
@@ -14,7 +15,9 @@ export const DashboardAppointmentListAvailableDatesQuerySchema = z
 		message: "The end date must not be before the start date",
 		path: ["to"],
 	});
-export type DashboardAppointmentListAvailableDatesQuery = z.infer<typeof DashboardAppointmentListAvailableDatesQuerySchema>;
+export type DashboardAppointmentListAvailableDatesQuery = z.infer<
+	typeof DashboardAppointmentListAvailableDatesQuerySchema
+>;
 export type DashboardAppointmentListAvailableDatesResponse = {
 	data: ClientAvailableDate[];
 };
@@ -55,6 +58,14 @@ export const DashboardAppointmentListQuerySchema = z.strictObject({
 	limit: z.coerce.number().int().min(1).max(100).optional(),
 });
 export type DashboardAppointmentListQuery = z.infer<typeof DashboardAppointmentListQuerySchema>;
-export const DashboardAppointmentFindOneQuerySchema = z.strictObject({ id: z.uuid() });
 export type DashboardAppointmentListResponse = WithPaginationResponse<ClientAppointment>;
+
+export const DashboardAppointmentFindOneQuerySchema = z.strictObject({ id: z.uuid() });
 export type DashboardAppointmentFindOneResponse = ClientAppointment;
+
+export const DashboardAppointmentUpdateStatusSchema = z.object({
+	id: z.uuid(),
+	status: z.enum(AppointmentStatus),
+});
+export type DashboardAppointmentUpdateStatus = z.infer<typeof DashboardAppointmentUpdateStatusSchema>;
+export type DashboardAppointmentUpdateStatusResponse = { status: AppointmentStatus };
