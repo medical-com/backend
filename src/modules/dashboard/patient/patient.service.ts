@@ -37,13 +37,18 @@ class DashboardPatientService {
 	}
 
 	async list(data: {
-		filters: { name?: string; email?: string; phoneNumber?: string };
+		filters: { name?: string; email?: string; phoneNumber?: string; pesel?: string };
 		page?: number;
 		limit?: number;
 	}): Promise<WithPagination<ClientPatient>> {
 		const { filters, page = 1, limit = 10 } = data;
 		const patients = await patientRepository.list({
-			filters: { name: filters.name, email: filters.email, phoneNumber: filters.phoneNumber },
+			filters: {
+				name: filters.name,
+				email: filters.email,
+				phoneNumber: filters.phoneNumber,
+				pesel: filters.pesel,
+			},
 			page,
 			limit,
 		});

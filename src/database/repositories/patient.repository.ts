@@ -79,6 +79,7 @@ export class PatientRepository {
 				name?: string;
 				email?: string;
 				phoneNumber?: string;
+				pesel?: string;
 			};
 			page?: number;
 			limit?: number;
@@ -111,6 +112,7 @@ export class PatientRepository {
 			const name = filters?.name?.trim();
 			const email = filters?.email?.trim();
 			const phoneNumber = filters?.phoneNumber?.trim();
+			const pesel = filters?.pesel?.trim();
 
 			if (name)
 				baseQuery.where((query) => {
@@ -118,6 +120,7 @@ export class PatientRepository {
 				});
 			if (email) baseQuery.where("pe.email", "ilike", `%${email}%`);
 			if (phoneNumber) baseQuery.where("pe.phone", "ilike", `%${phoneNumber}%`);
+			if (pesel) baseQuery.where("pe.pesel", "ilike", `%${pesel}%`);
 
 			const [patients, countResult] = await Promise.all([
 				baseQuery.clone().orderBy("pa.id", "asc").offset(pagination.offset).limit(pagination.limit),

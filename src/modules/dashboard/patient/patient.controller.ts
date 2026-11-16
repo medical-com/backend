@@ -28,9 +28,9 @@ class DashboardPatientController {
 	@RequireAuth({ roles: [AccountRole.ADMIN] })
 	@Throttle({ limit: 10, windowMs: 1000 })
 	async list(req: express.Request, res: express.Response<DashboardPatientListResponse>) {
-		const { email, name, phoneNumber, page, limit } = validate(DashboardPatientListQuerySchema, req.query);
+		const { email, name, phoneNumber, pesel, page, limit } = validate(DashboardPatientListQuerySchema, req.query);
 
-		const result = await service.list({ filters: { email, name, phoneNumber }, page, limit });
+		const result = await service.list({ filters: { email, name, phoneNumber, pesel }, page, limit });
 		res.json({
 			data: result.data,
 			pagination: {

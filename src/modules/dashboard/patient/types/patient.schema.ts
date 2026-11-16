@@ -1,12 +1,6 @@
 import type { ClientPatient } from "@/types/client/patient.type";
 import type { WithPaginationResponse } from "@/types/pagination.type";
-import {
-	dateSchema,
-	emailSchema,
-	nameSchema,
-	peselSchema,
-	phoneNumberSchema,
-} from "@/types/zod.types";
+import { dateSchema, emailSchema, nameSchema, peselSchema, phoneNumberSchema } from "@/types/zod.types";
 import { z } from "zod";
 
 export const DashboardPatientFindOneQuerySchema = z.strictObject({
@@ -19,6 +13,7 @@ export const DashboardPatientListQuerySchema = z.strictObject({
 	name: nameSchema.optional(),
 	email: emailSchema.optional(),
 	phoneNumber: z.string().trim().min(1).optional(),
+	pesel: peselSchema.optional(),
 	page: z.coerce.number().int().min(1).optional(),
 	limit: z.coerce.number().int().min(1).max(100).optional(),
 });
@@ -38,13 +33,13 @@ export type DashboardPatientResponse = ClientPatient;
 
 export const DashboardPatientUpdateSchema = z
 	.strictObject({
-	id: z.uuid(),
-	firstName: nameSchema.optional(),
-	lastName: nameSchema.optional(),
-	email: emailSchema.optional(),
-	phoneNumber: phoneNumberSchema.optional(),
-	dateOfBirth: dateSchema.optional(),
-	pesel: peselSchema.optional(),
+		id: z.uuid(),
+		firstName: nameSchema.optional(),
+		lastName: nameSchema.optional(),
+		email: emailSchema.optional(),
+		phoneNumber: phoneNumberSchema.optional(),
+		dateOfBirth: dateSchema.optional(),
+		pesel: peselSchema.optional(),
 	})
 	.refine((data) => Object.keys(data).length > 1, {
 		message: "At least one patient field must be provided",

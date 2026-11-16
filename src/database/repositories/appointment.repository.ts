@@ -27,7 +27,17 @@ export class AppointmentRepository {
 
 	async listDetailed(
 		data: {
-			filters?: { doctorId?: string; serviceId?: string; from?: Date; to?: Date; patientName?: string };
+			filters?: {
+				doctorId?: string;
+				serviceId?: string;
+				from?: Date;
+				to?: Date;
+				patientName?: string;
+				patientEmail?: string;
+				patientPhone?: string;
+				patientPesel?: string;
+				status?: AppointmentStatus;
+			};
 			page?: number;
 			limit?: number;
 		},
@@ -42,11 +52,15 @@ export class AppointmentRepository {
 			if (filters?.serviceId) query.where("appointments.service_id", filters.serviceId);
 			if (filters?.from) query.where("appointments.start_at", ">=", filters.from);
 			if (filters?.to) query.where("appointments.start_at", "<", filters.to);
+			if (filters?.status) query.where("appointments.status", filters.status);
 			if (filters?.patientName) {
 				query.whereRaw("concat_ws(' ', patient_person.first_name, patient_person.last_name) ilike ?", [
 					`%${filters.patientName}%`,
 				]);
 			}
+			if (filters?.patientEmail) query.where("patient_person.email", "ilike", `%${filters.patientEmail}%`);
+			if (filters?.patientPhone) query.where("patient_person.phone", "ilike", `%${filters.patientPhone}%`);
+			if (filters?.patientPesel) query.where("patient_person.pesel", "ilike", `%${filters.patientPesel}%`);
 
 			const [rows, countResult] = await Promise.all([
 				query.clone().orderBy("appointments.start_at", "asc").offset(pagination.offset).limit(pagination.limit),

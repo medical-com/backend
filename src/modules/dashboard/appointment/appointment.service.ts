@@ -30,13 +30,13 @@ const MAX_DAYS_IN_ADVANCE = 7;
 const APPOINTMENT_QUERY_LIMIT = 100;
 const REMINDER_DAYS_BEFORE = [7, 1] as const;
 
-function resolveDateRange(from?: Date, to?: Date) {
+const resolveDateRange = (from?: Date, to?: Date) => {
 	const now = new Date();
 	const rangeFrom = from && !isBefore(from, now) ? from : now;
 	const rangeTo = dayEnd(to ?? plusDays(rangeFrom, MAX_DAYS_IN_ADVANCE));
 	if (isBefore(rangeTo, rangeFrom)) throw new AppError("Invalid date range", 400);
 	return { rangeFrom, rangeTo };
-}
+};
 
 class DashboardAppointmentService {
 	async create(data: {
@@ -127,7 +127,17 @@ class DashboardAppointmentService {
 	}
 
 	async list(data: {
-		filters?: { doctorId?: string; serviceId?: string; from?: Date; to?: Date; patientName?: string };
+		filters?: {
+			doctorId?: string;
+			serviceId?: string;
+			from?: Date;
+			to?: Date;
+			patientName?: string;
+			patientEmail?: string;
+			patientPhone?: string;
+			patientPesel?: string;
+			status?: AppointmentStatus;
+		};
 		page?: number;
 		limit?: number;
 	}): Promise<WithPagination<ClientAppointment>> {
