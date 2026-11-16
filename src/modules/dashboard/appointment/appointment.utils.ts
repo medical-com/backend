@@ -1,69 +1,84 @@
-import { Appointment, DoctorSchedule, DoctorScheduleException } from "@/database/types";
+import { AppointmentStatus } from "@/database/types";
+import type { Appointment, DoctorSchedule, DoctorScheduleException } from "@/database/types";
 import { dayEnd, dayStart, timeString } from "@/core/date";
-import { mergeIntervals, subtractIntervals, TimeInterval } from "@/core/time-intervals";
+import { mergeIntervals, subtractIntervals } from "@/core/time-intervals";
+import type { TimeInterval } from "@/core/time-intervals";
 
-export const listAvailableTimeIntervals = (
+export function blocksAvailability({ status }: Appointment): boolean {
+	return status !== AppointmentStatus.CANCELLED && status !== AppointmentStatus.NO_SHOW;
+}
+
+function toMinutes(value: string): number {
+	const [hours = 0, minutes = 0] = value.split(":").map(Number);
+	return hours * 60 + minutes;
+}
+
+function formatTime(totalMinutes: number): string {
+	const hours = String(Math.floor(totalMinutes / 60)).padStart(2, "0");
+	const minutes = String(totalMinutes % 60).padStart(2, "0");
+	return `${hours}:${minutes}`;
+}
+
+function getFreeIntervals(
 	schedule: TimeInterval[],
 	additional: TimeInterval[],
 	unavailable: TimeInterval[],
 	blocked: TimeInterval[],
-) => {
-	const availableIntervals = mergeIntervals([...schedule, ...additional]);
+): TimeInterval[] {
+	return subtractIntervals(
+		mergeIntervals([...schedule, ...additional]),
+		mergeIntervals([...unavailable, ...blocked]),
+	);
+}
 
-	const unavailableIntervals = mergeIntervals([...unavailable, ...blocked]);
-
-	const freeIntervals: TimeInterval[] = subtractIntervals(availableIntervals, unavailableIntervals);
-
+export function listAvailableTimeIntervals(
+	schedule: TimeInterval[],
+	additional: TimeInterval[],
+	unavailable: TimeInterval[],
+	blocked: TimeInterval[],
+) {
 	return {
-		timeIntervals: freeIntervals.map((interval) => ({
-			start: formatTime(interval.start),
-			end: formatTime(interval.end),
+		timeIntervals: getFreeIntervals(schedule, additional, unavailable, blocked).map(({ start, end }) => ({
+			start: formatTime(start),
+			end: formatTime(end),
 		})),
 	};
-};
+}
 
-const time = (value: string): number => {
-	const [hours = 0, minutes = 0] = value.split(":").map(Number);
+export function listAvailableSlots(
+	schedule: TimeInterval[],
+	additional: TimeInterval[],
+	unavailable: TimeInterval[],
+	blocked: TimeInterval[],
+	durationMinutes: number,
+): string[] {
+	if (!Number.isInteger(durationMinutes) || durationMinutes <= 0) {
+		throw new RangeError("Service duration must be a positive integer");
+	}
 
-	return hours * 60 + minutes;
-};
+	const slots = new Set<string>();
+	for (const { start, end } of getFreeIntervals(schedule, additional, unavailable, blocked)) {
+		for (let minute = start; minute + durationMinutes <= end; minute += durationMinutes) {
+			slots.add(formatTime(minute));
+		}
+	}
+	return [...slots];
+}
 
-const formatTime = (minutes: number): string => {
-	const hours = Math.floor(minutes / 60);
-	const mins = minutes % 60;
+export function scheduleToTimeIntervals(schedule: DoctorSchedule): TimeInterval {
+	return { start: toMinutes(schedule.start_time), end: toMinutes(schedule.end_time) };
+}
 
-	return `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
-};
+function dateRangeToTimeInterval(startAt: Date, endAt: Date, date?: Date): TimeInterval {
+	const start = date ? new Date(Math.max(startAt.getTime(), dayStart(date).getTime())) : startAt;
+	const end = date ? new Date(Math.min(endAt.getTime(), dayEnd(date).getTime())) : endAt;
+	return { start: toMinutes(timeString(start)), end: toMinutes(timeString(end)) };
+}
 
-export const scheduleToTimeIntervals = (schedule: DoctorSchedule): TimeInterval => {
-	return {
-		start: time(schedule.start_time),
-		end: time(schedule.end_time),
-	};
-};
+export function exceptionToTimeIntervals(exception: DoctorScheduleException, date?: Date): TimeInterval {
+	return dateRangeToTimeInterval(exception.start_at, exception.end_at, date);
+}
 
-const dateToMinutes = (date: Date): number => time(timeString(date));
-
-export const exceptionToTimeIntervals = (exception: DoctorScheduleException, date?: Date): TimeInterval => {
-	const start = date
-		? Math.max(exception.start_at.getTime(), dayStart(date).getTime())
-		: exception.start_at.getTime();
-	const end = date ? Math.min(exception.end_at.getTime(), dayEnd(date).getTime()) : exception.end_at.getTime();
-
-	return {
-		start: dateToMinutes(new Date(start)),
-		end: dateToMinutes(new Date(end)),
-	};
-};
-
-export const appointmentToTimeIntervals = (appointment: Appointment, date?: Date): TimeInterval => {
-	const start = date
-		? Math.max(appointment.start_at.getTime(), dayStart(date).getTime())
-		: appointment.start_at.getTime();
-	const end = date ? Math.min(appointment.end_at.getTime(), dayEnd(date).getTime()) : appointment.end_at.getTime();
-
-	return {
-		start: dateToMinutes(new Date(start)),
-		end: dateToMinutes(new Date(end)),
-	};
-};
+export function appointmentToTimeIntervals(appointment: Appointment, date?: Date): TimeInterval {
+	return dateRangeToTimeInterval(appointment.start_at, appointment.end_at, date);
+}

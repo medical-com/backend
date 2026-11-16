@@ -15,6 +15,7 @@ export class AppointmentRepository {
 			throw new DatabaseError(err);
 		}
 	}
+
 	async findDetailedById(data: { id: string }, trx?: Knex.Transaction): Promise<ClientAppointment | undefined> {
 		try {
 			const row = await this.detailedQuery(trx).where("appointments.id", data.id).first();

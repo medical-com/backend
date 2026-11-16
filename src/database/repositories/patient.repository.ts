@@ -20,7 +20,12 @@ export class PatientRepository {
 		}
 	}
 
-	async findWithPerson(data: { id: string }, trx?: Knex.Transaction): Promise<(Patient & { person: Person }) | null> {
+	async findWithPerson(
+		data: { id: string | null },
+		trx?: Knex.Transaction,
+	): Promise<(Patient & { person: Person }) | null> {
+		if (!data.id) return null;
+
 		try {
 			const patient = await (trx || db)("public.patients as pa")
 				.leftJoin("public.persons as pe", "pe.id", "pa.person_id")
@@ -115,11 +120,7 @@ export class PatientRepository {
 			if (phoneNumber) baseQuery.where("pe.phone", "ilike", `%${phoneNumber}%`);
 
 			const [patients, countResult] = await Promise.all([
-				baseQuery
-					.clone()
-					.orderBy("pa.id", "asc")
-					.offset(pagination.offset)
-					.limit(pagination.limit),
+				baseQuery.clone().orderBy("pa.id", "asc").offset(pagination.offset).limit(pagination.limit),
 
 				baseQuery.clone().clearSelect().clearOrder().countDistinct("pa.id as total"),
 			]);

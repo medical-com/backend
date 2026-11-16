@@ -11,20 +11,50 @@ import {
 import { AppointmentStatus, DoctorScheduleExceptionType } from "@/database/types";
 import type { Appointment } from "@/database/types";
 import { calendarDate, dayEnd, dayStart, isoDayOfWeek, isBefore, plusDays, plusMinutes, withTime } from "@/core/date";
-import type { DashboardAppointment } from "./types/appointment.schema";
 import type { ClientAppointment, ClientAvailableDate } from "@/types/client/appointment.type";
 import type { WithPagination } from "@/types/pagination.type";
 import {
 	appointmentToTimeIntervals,
 	exceptionToTimeIntervals,
-	listAvailableTimeIntervals,
+	blocksAvailability,
+	listAvailableSlots,
 	scheduleToTimeIntervals,
 } from "./appointment.utils";
 import { createPerson } from "@/core/services/person.service";
+import { sendAppointmentCreatedEmail } from "@/core/mail/appointment.mail";
+import { appointmentReminderQueue } from "./jobs/reminder/reminder.queue";
+import { subDays } from "date-fns";
+import type { Knex } from "knex";
 
 const MAX_DAYS_IN_ADVANCE = 7;
+const APPOINTMENT_QUERY_LIMIT = 100;
+const REMINDER_DAYS_BEFORE = [7, 1] as const;
+
+function resolveDateRange(from?: Date, to?: Date) {
+	const now = new Date();
+	const rangeFrom = from && !isBefore(from, now) ? from : now;
+	const rangeTo = dayEnd(to ?? plusDays(rangeFrom, MAX_DAYS_IN_ADVANCE));
+	if (isBefore(rangeTo, rangeFrom)) throw new AppError("Invalid date range", 400);
+	return { rangeFrom, rangeTo };
+}
+
 class DashboardAppointmentService {
-	async create(data: DashboardAppointment): Promise<Appointment> {
+	async create(data: {
+		serviceId: string;
+		doctorId: string | null;
+		patientId: string | null;
+		newPatient?: {
+			firstName: string;
+			lastName: string;
+			email: string;
+			phoneNumber: string;
+			dateOfBirth: Date;
+			pesel: string;
+		};
+		date: Date;
+		time: string;
+		notes?: string | null;
+	}): Promise<Appointment> {
 		const service = await serviceRepository.findById({ id: data.serviceId });
 		if (!service) throw new AppError("Service not found", 404);
 
@@ -44,17 +74,11 @@ class DashboardAppointmentService {
 			const conflictingAppointments = await appointmentRepository.list(
 				{
 					filters: { doctorId: availableDate.doctor.id, from: startAt, to: endAt },
-					limit: 100,
+					limit: APPOINTMENT_QUERY_LIMIT,
 				},
 				trx,
 			);
-			if (
-				conflictingAppointments.data.some(
-					(appointment) =>
-						appointment.status !== AppointmentStatus.CANCELLED &&
-						appointment.status !== AppointmentStatus.NO_SHOW,
-				)
-			) {
+			if (conflictingAppointments.data.some(blocksAvailability)) {
 				throw new AppError("The selected time is no longer available", 409);
 			}
 
@@ -69,15 +93,17 @@ class DashboardAppointmentService {
 				);
 
 				const patient = await patientRepository.insert({ person_id: person.id }, trx);
+
 				patientId = patient.id;
-			} else if (!patientId || !(await patientRepository.findWithPerson({ id: patientId }, trx))) {
-				throw new AppError("Patient not found", 404);
 			}
 
-			return appointmentRepository.insert(
+			const patient = await patientRepository.findWithPerson({ id: patientId }, trx);
+			if (!patient) throw new AppError("Patient not found after creation", 500);
+
+			const appointment = await appointmentRepository.insert(
 				{
 					doctor_id: availableDate.doctor.id,
-					patient_id: patientId,
+					patient_id: patient.id,
 					service_id: data.serviceId,
 					start_at: startAt,
 					end_at: endAt,
@@ -86,7 +112,26 @@ class DashboardAppointmentService {
 				},
 				trx,
 			);
+
+			await this.sendAppointmentCreatedEmail({ id: appointment.id }, trx);
+			await this.setReminder(appointment);
+
+			return appointment;
 		});
+	}
+
+	async findOne(id: string): Promise<ClientAppointment> {
+		const appointment = await appointmentRepository.findDetailedById({ id });
+		if (!appointment) throw new AppError("Appointment not found", 404);
+		return appointment;
+	}
+
+	async list(data: {
+		filters?: { doctorId?: string; serviceId?: string; from?: Date; to?: Date; patientName?: string };
+		page?: number;
+		limit?: number;
+	}): Promise<WithPagination<ClientAppointment>> {
+		return appointmentRepository.listDetailed(data);
 	}
 
 	async listAvailableDates(data: {
@@ -102,9 +147,7 @@ class DashboardAppointmentService {
 		if (data.doctorId && !service.doctor_ids.includes(data.doctorId))
 			throw new AppError("Doctor cannot perform this service", 400);
 
-		const rangeFrom = dayStart(data.from ?? new Date());
-		const rangeTo = dayEnd(data.to ?? plusDays(rangeFrom, MAX_DAYS_IN_ADVANCE));
-		if (isBefore(rangeTo, rangeFrom)) throw new AppError("Invalid date range", 400);
+		const { rangeFrom, rangeTo } = resolveDateRange(data.from, data.to);
 
 		const doctors = await Promise.all(doctorIds.map((doctorId) => doctorRepository.findWithPerson({ doctorId })));
 
@@ -112,12 +155,13 @@ class DashboardAppointmentService {
 		for (const doctor of doctors) {
 			if (!doctor) continue;
 
-			await this.listAvailableDatesForDoctor({
+			const dates = await this.listAvailableDatesForDoctor({
 				serviceId: data.serviceId,
 				doctorId: doctor.id,
 				from: rangeFrom,
 				to: rangeTo,
-			}).then((dates) => availableDates.push(...dates));
+			});
+			availableDates.push(...dates);
 		}
 
 		return availableDates;
@@ -136,9 +180,7 @@ class DashboardAppointmentService {
 
 		if (!service.doctor_ids.includes(data.doctorId)) throw new AppError("Doctor cannot perform this service", 400);
 
-		const rangeFrom = dayStart(data.from ?? new Date());
-		const rangeTo = dayEnd(data.to ?? plusDays(rangeFrom, MAX_DAYS_IN_ADVANCE));
-		if (isBefore(rangeTo, rangeFrom)) throw new AppError("Invalid date range", 400);
+		const { rangeFrom, rangeTo } = resolveDateRange(data.from, data.to);
 
 		const [schedules, exceptions, appointments] = await Promise.all([
 			doctorScheduleRepository.findByDoctorAndDateRange({
@@ -157,12 +199,12 @@ class DashboardAppointmentService {
 					from: rangeFrom,
 					to: rangeTo,
 				},
-				limit: 100,
+				limit: APPOINTMENT_QUERY_LIMIT,
 			}),
 		]);
 
 		const availableDates: ClientAvailableDate[] = [];
-		for (let date = rangeFrom; !isBefore(rangeTo, date); date = plusDays(date, 1)) {
+		for (let date = dayStart(rangeFrom); !isBefore(rangeTo, date); date = plusDays(date, 1)) {
 			const schedule = schedules.find(
 				(item) =>
 					item.day_of_week === isoDayOfWeek(date) &&
@@ -174,7 +216,7 @@ class DashboardAppointmentService {
 				(item) => calendarDate(item.start_at) <= dateKey && calendarDate(item.end_at) >= dateKey,
 			);
 
-			const { timeIntervals } = listAvailableTimeIntervals(
+			const slots = listAvailableSlots(
 				schedule ? [scheduleToTimeIntervals(schedule)] : [],
 				dayExceptions
 					.filter((exception) => exception.type === DoctorScheduleExceptionType.AVAILABLE)
@@ -183,34 +225,15 @@ class DashboardAppointmentService {
 					.filter((exception) => exception.type === DoctorScheduleExceptionType.UNAVAILABLE)
 					.map((exception) => exceptionToTimeIntervals(exception, date)),
 				appointments.data
-					.filter(
-						(appointment) =>
-							appointment.status !== AppointmentStatus.CANCELLED &&
-							appointment.status !== AppointmentStatus.NO_SHOW,
-					)
+					.filter(blocksAvailability)
 					.filter(
 						(appointment) =>
 							isBefore(appointment.start_at, dayEnd(date)) &&
 							isBefore(dayStart(date), appointment.end_at),
 					)
 					.map((appointment) => appointmentToTimeIntervals(appointment, date)),
-			);
-
-			const slots = timeIntervals
-				.flatMap(({ start, end }) => {
-					const intervalSlots: string[] = [];
-					const [startHours = 0, startMinutes = 0] = start.split(":").map(Number);
-					const [endHours = 0, endMinutes = 0] = end.split(":").map(Number);
-					const intervalStart = startHours * 60 + startMinutes;
-					const intervalEnd = endHours * 60 + endMinutes;
-					for (let slot = intervalStart; slot + service.duration <= intervalEnd; slot += service.duration) {
-						intervalSlots.push(
-							`${String(Math.floor(slot / 60)).padStart(2, "0")}:${String(slot % 60).padStart(2, "0")}`,
-						);
-					}
-					return intervalSlots;
-				})
-				.filter((slot, index, allSlots) => allSlots.indexOf(slot) === index);
+				service.duration,
+			).filter((slot) => !isBefore(withTime(date, slot), rangeFrom));
 
 			if (slots.length > 0) {
 				availableDates.push({
@@ -230,20 +253,6 @@ class DashboardAppointmentService {
 		return availableDates;
 	}
 
-	async list(data: {
-		filters?: { doctorId?: string; serviceId?: string; from?: Date; to?: Date; patientName?: string };
-		page?: number;
-		limit?: number;
-	}): Promise<WithPagination<ClientAppointment>> {
-		return await appointmentRepository.listDetailed(data);
-	}
-
-	async findOne(id: string): Promise<ClientAppointment> {
-		const appointment = await appointmentRepository.findDetailedById({ id });
-		if (!appointment) throw new AppError("Appointment not found", 404);
-		return appointment;
-	}
-
 	async updateStatus(data: { id: string; status: AppointmentStatus }): Promise<ClientAppointment> {
 		const appointment = await appointmentRepository.findById({ id: data.id });
 		if (!appointment) throw new AppError("Appointment not found", 404);
@@ -253,7 +262,40 @@ class DashboardAppointmentService {
 		const updatedAppointment = await appointmentRepository.findDetailedById({ id: data.id });
 		if (!updatedAppointment) throw new AppError("Appointment not found after update", 404);
 
+		if (data.status === AppointmentStatus.CANCELLED)
+			await appointmentReminderQueue.cancel({ appointmentId: data.id });
+
 		return updatedAppointment;
+	}
+
+	private async sendAppointmentCreatedEmail(data: { id: string }, trx?: Knex.Transaction) {
+		const appointment = await appointmentRepository.findDetailedById({ id: data.id }, trx);
+		if (!appointment) throw new AppError("Appointment not found", 404);
+
+		await sendAppointmentCreatedEmail({
+			firstName: appointment.patient.firstName,
+			lastName: appointment.patient.lastName,
+			email: appointment.patient.email,
+			date: new Date(appointment.startAt),
+			serviceName: appointment.service.name,
+			duration: appointment.service.duration,
+			doctorName: `${appointment.doctor.firstName} ${appointment.doctor.lastName}`,
+		});
+	}
+
+	private async setReminder(appointment: Appointment) {
+		const now = new Date();
+
+		for (const daysBefore of REMINDER_DAYS_BEFORE) {
+			const reminderTime = subDays(appointment.start_at, daysBefore);
+
+			if (reminderTime <= now) continue;
+
+			await appointmentReminderQueue.add({
+				appointmentId: appointment.id,
+				reminderTime,
+			});
+		}
 	}
 }
 export const dashboardAppointmentService = new DashboardAppointmentService();
