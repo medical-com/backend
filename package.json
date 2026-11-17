@@ -5,7 +5,7 @@
 	"type": "module",
 	"scripts": {
 		"dev": "tsx watch src/index.ts & tsx watch src/worker.ts",
-		"build": "tsup src/index.ts --format esm --clean --dts && tsup src/worker.ts --format esm --clean --dts",
+		"build": "tsup src/index.ts --format esm --clean && tsup src/worker.ts --format esm --clean",
 		"start": "node dist/index.js & node dist/worker.js",
 		"start:worker": "node dist/worker.js",
 		"dev:worker": "tsx watch src/worker.ts",
