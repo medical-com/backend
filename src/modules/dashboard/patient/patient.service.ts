@@ -1,11 +1,34 @@
 import { AppError } from "@/core/errors/app-error";
+import db from "@/database";
 import { patientRepository, personRepository } from "@/database/repositories";
 import type { Patient } from "@/database/types/patients.types";
 import type { Person } from "@/database/types/persons.types";
+import { createPerson } from "@/core/services/person.service";
 import type { ClientPatient } from "@/types/client/patient.type";
 import type { WithPagination } from "@/types/pagination.type";
 
 class DashboardPatientService {
+	async create(data: {
+		firstName: string;
+		lastName: string;
+		email: string;
+		phoneNumber: string;
+		dateOfBirth: Date;
+		pesel: string;
+	}): Promise<ClientPatient> {
+		const patient = await db.transaction(async (trx) => {
+			const person = await createPerson({ ...data, phone: data.phoneNumber }, trx);
+
+			const createdPatient = await patientRepository.insert({ person_id: person.id }, trx);
+			const patientWithPerson = await patientRepository.findWithPerson({ id: createdPatient.id }, trx);
+
+			if (!patientWithPerson) throw new AppError("Patient not found after creation", 500);
+			return patientWithPerson;
+		});
+
+		return this.toClientPatient(patient);
+	}
+
 	async findOne(id: string): Promise<ClientPatient> {
 		const patient = await patientRepository.findWithPerson({ id });
 		if (!patient) throw new AppError("Patient not found", 404);
@@ -14,13 +37,18 @@ class DashboardPatientService {
 	}
 
 	async list(data: {
-		filters: { name?: string; email?: string; phoneNumber?: string };
+		filters: { name?: string; email?: string; phoneNumber?: string; pesel?: string };
 		page?: number;
 		limit?: number;
 	}): Promise<WithPagination<ClientPatient>> {
 		const { filters, page = 1, limit = 10 } = data;
 		const patients = await patientRepository.list({
-			filters: { name: filters.name, email: filters.email, phoneNumber: filters.phoneNumber },
+			filters: {
+				name: filters.name,
+				email: filters.email,
+				phoneNumber: filters.phoneNumber,
+				pesel: filters.pesel,
+			},
 			page,
 			limit,
 		});

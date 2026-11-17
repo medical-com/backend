@@ -25,6 +25,8 @@ export const config = {
 	port: env.PORT,
 	clientUrl: env.CLIENT_URL,
 
+	timeZone: env.TIME_ZONE,
+
 	database: {
 		host: env.DB_HOST,
 		port: env.DB_PORT,

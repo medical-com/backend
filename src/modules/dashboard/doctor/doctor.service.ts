@@ -25,6 +25,7 @@ import { mailService } from "@/core/mail";
 import type { ClientDoctor } from "@/types/client/doctor.type";
 import type { WithPagination } from "@/types/pagination.type";
 import type { ClientDoctorSchedule, ClientDoctorScheduleException } from "@/types/client/doctor.type";
+import { createPerson } from "@/core/services/person.service";
 
 class DashboardDoctorService {
 	async findOne(id: string): Promise<ClientDoctor | null> {
@@ -36,7 +37,7 @@ class DashboardDoctorService {
 	}
 
 	async list(data: {
-		filters: { firstName?: string; lastName?: string };
+		filters: { firstName?: string; lastName?: string; serviceId?: string };
 		page?: number;
 		limit?: number;
 	}): Promise<WithPagination<ClientDoctor>> {
@@ -44,6 +45,7 @@ class DashboardDoctorService {
 			filters: {
 				first_name: data.filters.firstName,
 				last_name: data.filters.lastName,
+				service_id: data.filters.serviceId,
 			},
 			page: data.page ?? 1,
 			limit: data.limit ?? 10,
@@ -130,26 +132,20 @@ class DashboardDoctorService {
 		specialization: string;
 	}): Promise<boolean> {
 		await db.transaction(async (trx) => {
-			const personWithPeselExists = await personRepository.findByPesel({ pesel: data.pesel }, trx);
-			if (personWithPeselExists) throw new Error("Person with this pesel already exists");
-			const personWithEmailExists = await personRepository.findByEmail({ email: data.email }, trx);
-			if (personWithEmailExists) throw new Error("Person with this email already exists");
-			const personWithPhoneExists = await personRepository.findByPhone({ phone: data.phoneNumber }, trx);
-			if (personWithPhoneExists) throw new Error("Person with this phone number already exists");
 			const doctorWithLicenseExists = await doctorRepository.findByLicenseNumber(
 				{ licenseNumber: data.licenseNumber },
 				trx,
 			);
 			if (doctorWithLicenseExists) throw new AppError("Doctor with this license number already exists", 400);
 
-			const person = await personRepository.insert(
+			const person = await createPerson(
 				{
-					first_name: data.firstName,
-					last_name: data.lastName,
+					firstName: data.firstName,
+					lastName: data.lastName,
 					email: data.email,
 					phone: data.phoneNumber,
 					pesel: data.pesel,
-					date_of_birth: new Date(data.dateOfBirth),
+					dateOfBirth: data.dateOfBirth,
 				},
 				trx,
 			);

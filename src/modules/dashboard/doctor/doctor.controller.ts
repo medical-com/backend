@@ -1,26 +1,26 @@
 import type express from "express";
 
 import {
-	ConfirmDoctorInvitationSchema,
-	CreateDoctorSchema,
-	CreateDoctorScheduleExceptionSchema,
-	DeleteDoctorScheduleExceptionSchema,
-	ListDoctorScheduleExceptionsSchema,
-	FindOneQuerySchema,
-	CreateDoctorScheduleSchema,
-	ListDoctorSchedulesSchema,
-	ListQuerySchema,
-	UpdateDoctorScheduleExceptionSchema,
-	UpdateDoctorScheduleSchema,
-	UpdateDoctorSchema,
+	DashboardDoctorConfirmInvitationSchema,
+	DashboardDoctorSchema,
+	DashboardDoctorScheduleExceptionSchema,
+	DashboardDoctorScheduleExceptionDeleteSchema,
+	DashboardDoctorScheduleExceptionListQuerySchema,
+	DashboardDoctorFindOneQuerySchema,
+	DashboardDoctorScheduleSchema,
+	DashboardDoctorScheduleListQuerySchema,
+	DashboardDoctorListQuerySchema,
+	DashboardDoctorScheduleExceptionUpdateSchema,
+	DashboardDoctorScheduleUpdateSchema,
+	DashboardDoctorUpdateSchema,
 } from "./types/doctor.schema";
 import type {
-	DoctorScheduleListResponse,
-	DoctorScheduleExceptionResponse,
-	DoctorScheduleExceptionListResponse,
-	DoctorScheduleResponse,
-	FindOneResponse,
-	ListDoctorsResponse,
+	DashboardDoctorScheduleListResponse,
+	DashboardDoctorScheduleExceptionResponse,
+	DashboardDoctorScheduleExceptionListResponse,
+	DashboardDoctorScheduleResponse,
+	DashboardDoctorFindOneResponse,
+	DashboardDoctorListResponse,
 } from "./types/doctor.schema";
 import { validate } from "@/core/security/validate";
 
@@ -30,10 +30,10 @@ import { Throttle } from "@/core/decorators/throttle";
 import { AccountRole } from "@/database/types/accounts.types";
 
 export default class DashboardDoctorController {
-	@RequireAuth({ role: AccountRole.ADMIN })
+	@RequireAuth({ roles: [AccountRole.ADMIN, AccountRole.RECEPTIONIST] })
 	@Throttle({ limit: 10, windowMs: 1000 })
-	async findOne(req: express.Request, res: express.Response<FindOneResponse>) {
-		const { id } = validate(FindOneQuerySchema, req.query);
+	async findOne(req: express.Request, res: express.Response<DashboardDoctorFindOneResponse>) {
+		const { id } = validate(DashboardDoctorFindOneQuerySchema, req.query);
 
 		const doctor = await service.findOne(id);
 
@@ -42,12 +42,12 @@ export default class DashboardDoctorController {
 		res.json(doctor);
 	}
 
-	@RequireAuth({ role: AccountRole.ADMIN })
+	@RequireAuth({ roles: [AccountRole.ADMIN, AccountRole.RECEPTIONIST] })
 	@Throttle({ limit: 10, windowMs: 1000 })
-	async list(req: express.Request, res: express.Response<ListDoctorsResponse>) {
-		const { firstName, lastName, page, limit } = validate(ListQuerySchema, req.query);
+	async list(req: express.Request, res: express.Response<DashboardDoctorListResponse>) {
+		const { firstName, lastName, serviceId, page, limit } = validate(DashboardDoctorListQuerySchema, req.query);
 		const result = await service.list({
-			filters: { firstName, lastName },
+			filters: { firstName, lastName, serviceId },
 			page,
 			limit,
 		});
@@ -64,11 +64,11 @@ export default class DashboardDoctorController {
 		});
 	}
 
-	@RequireAuth({ role: AccountRole.ADMIN })
+	@RequireAuth({ roles: [AccountRole.ADMIN] })
 	@Throttle({ limit: 10, windowMs: 1000 })
 	async update(req: express.Request, res: express.Response) {
 		const { id, firstName, lastName, email, phoneNumber, dateOfBirth, pesel, licenseNumber, specialization } =
-			validate(UpdateDoctorSchema, req.body);
+			validate(DashboardDoctorUpdateSchema, req.body);
 
 		const updatedDoctor = await service.update({
 			id,
@@ -77,42 +77,42 @@ export default class DashboardDoctorController {
 		res.json(updatedDoctor);
 	}
 
-	@RequireAuth({ role: AccountRole.ADMIN })
+	@RequireAuth({ roles: [AccountRole.ADMIN] })
 	@Throttle({ limit: 5, windowMs: 15 * 60 * 1000 })
 	async create(req: express.Request, res: express.Response<{ success: boolean }>) {
-		const data = validate(CreateDoctorSchema, req.body);
+		const data = validate(DashboardDoctorSchema, req.body);
 		const success = await service.create(data);
 
 		res.status(201).json({ success });
 	}
 
 	async confirmInvitation(req: express.Request, res: express.Response<{ success: boolean }>) {
-		const { token } = validate(ConfirmDoctorInvitationSchema, req.body);
+		const { token } = validate(DashboardDoctorConfirmInvitationSchema, req.body);
 		const success = await service.confirmDoctorInvitation({ token });
 
 		res.json({ success });
 	}
 
-	@RequireAuth({ role: AccountRole.ADMIN })
+	@RequireAuth({ roles: [AccountRole.ADMIN] })
 	@Throttle({ limit: 10, windowMs: 1000 })
-	async createSchedule(req: express.Request, res: express.Response<DoctorScheduleResponse>) {
-		const data = validate(CreateDoctorScheduleSchema, req.body);
+	async createSchedule(req: express.Request, res: express.Response<DashboardDoctorScheduleResponse>) {
+		const data = validate(DashboardDoctorScheduleSchema, req.body);
 		const schedule = await service.createSchedule(data);
 		res.status(201).json(schedule);
 	}
 
-	@RequireAuth({ role: AccountRole.ADMIN })
+	@RequireAuth({ roles: [AccountRole.ADMIN] })
 	@Throttle({ limit: 10, windowMs: 1000 })
-	async updateSchedule(req: express.Request, res: express.Response<DoctorScheduleResponse>) {
-		const data = validate(UpdateDoctorScheduleSchema, req.body);
+	async updateSchedule(req: express.Request, res: express.Response<DashboardDoctorScheduleResponse>) {
+		const data = validate(DashboardDoctorScheduleUpdateSchema, req.body);
 		const schedule = await service.updateSchedule(data);
 		res.json(schedule);
 	}
 
-	@RequireAuth({ role: AccountRole.ADMIN })
+	@RequireAuth({ roles: [AccountRole.ADMIN, AccountRole.RECEPTIONIST] })
 	@Throttle({ limit: 10, windowMs: 1000 })
-	async listSchedules(req: express.Request, res: express.Response<DoctorScheduleListResponse>) {
-		const { doctorId, doctorName, page, limit } = validate(ListDoctorSchedulesSchema, req.query);
+	async listSchedules(req: express.Request, res: express.Response<DashboardDoctorScheduleListResponse>) {
+		const { doctorId, doctorName, page, limit } = validate(DashboardDoctorScheduleListQuerySchema, req.query);
 		const result = await service.listSchedules({ filters: { doctorId, doctorName }, page, limit });
 		res.json({
 			data: result.data,
@@ -126,36 +126,45 @@ export default class DashboardDoctorController {
 		});
 	}
 
-	@RequireAuth({ role: AccountRole.ADMIN })
+	@RequireAuth({ roles: [AccountRole.ADMIN] })
 	@Throttle({ limit: 10, windowMs: 1000 })
-	async createScheduleException(req: express.Request, res: express.Response<DoctorScheduleExceptionResponse>) {
+	async createScheduleException(
+		req: express.Request,
+		res: express.Response<DashboardDoctorScheduleExceptionResponse>,
+	) {
 		const exception = await service.createScheduleException(
-			validate(CreateDoctorScheduleExceptionSchema, req.body),
+			validate(DashboardDoctorScheduleExceptionSchema, req.body),
 		);
 		res.status(201).json(exception);
 	}
 
-	@RequireAuth({ role: AccountRole.ADMIN })
+	@RequireAuth({ roles: [AccountRole.ADMIN] })
 	@Throttle({ limit: 10, windowMs: 1000 })
-	async updateScheduleException(req: express.Request, res: express.Response<DoctorScheduleExceptionResponse>) {
+	async updateScheduleException(
+		req: express.Request,
+		res: express.Response<DashboardDoctorScheduleExceptionResponse>,
+	) {
 		const exception = await service.updateScheduleException(
-			validate(UpdateDoctorScheduleExceptionSchema, req.body),
+			validate(DashboardDoctorScheduleExceptionUpdateSchema, req.body),
 		);
 		res.json(exception);
 	}
 
-	@RequireAuth({ role: AccountRole.ADMIN })
+	@RequireAuth({ roles: [AccountRole.ADMIN] })
 	@Throttle({ limit: 10, windowMs: 1000 })
 	async deleteScheduleException(req: express.Request, res: express.Response<{ success: boolean }>) {
-		const { id } = validate(DeleteDoctorScheduleExceptionSchema, req.body);
+		const { id } = validate(DashboardDoctorScheduleExceptionDeleteSchema, req.body);
 		const success = await service.deleteScheduleException({ id });
 		res.json({ success });
 	}
 
-	@RequireAuth({ role: AccountRole.ADMIN })
+	@RequireAuth({ roles: [AccountRole.ADMIN] })
 	@Throttle({ limit: 10, windowMs: 1000 })
-	async listScheduleExceptions(req: express.Request, res: express.Response<DoctorScheduleExceptionListResponse>) {
-		const { doctorId, page, limit } = validate(ListDoctorScheduleExceptionsSchema, req.query);
+	async listScheduleExceptions(
+		req: express.Request,
+		res: express.Response<DashboardDoctorScheduleExceptionListResponse>,
+	) {
+		const { doctorId, page, limit } = validate(DashboardDoctorScheduleExceptionListQuerySchema, req.query);
 		const result = await service.listScheduleExceptions({ doctorId, page, limit });
 		res.json({
 			data: result.data,

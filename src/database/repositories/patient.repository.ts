@@ -3,6 +3,7 @@ import db from "..";
 import { DatabaseError } from "@/core/errors/database-error";
 import type { Knex } from "knex";
 import type { WithPagination } from "@/types/pagination.type";
+import { getPaginationParams, withPagination } from "@/core/pagination";
 import type { Patient, Person } from "../types";
 
 export class PatientRepository {
@@ -19,7 +20,12 @@ export class PatientRepository {
 		}
 	}
 
-	async findWithPerson(data: { id: string }, trx?: Knex.Transaction): Promise<(Patient & { person: Person }) | null> {
+	async findWithPerson(
+		data: { id: string | null },
+		trx?: Knex.Transaction,
+	): Promise<(Patient & { person: Person }) | null> {
+		if (!data.id) return null;
+
 		try {
 			const patient = await (trx || db)("public.patients as pa")
 				.leftJoin("public.persons as pe", "pe.id", "pa.person_id")
@@ -73,17 +79,15 @@ export class PatientRepository {
 				name?: string;
 				email?: string;
 				phoneNumber?: string;
+				pesel?: string;
 			};
 			page?: number;
 			limit?: number;
 		},
 		trx?: Knex.Transaction,
 	): Promise<WithPagination<Patient & { person: Person }>> {
-		const { filters, page = 1, limit = 10 } = data;
-
-		if (!Number.isInteger(page) || page < 1) throw new DatabaseError("Page must be a positive integer");
-		if (!Number.isInteger(limit) || limit < 1) throw new DatabaseError("Limit must be a positive integer");
-		if (limit > 100) throw new DatabaseError("Limit cannot be greater than 100");
+		const { filters } = data;
+		const pagination = getPaginationParams(data);
 
 		try {
 			const baseQuery = (trx || db)("public.patients as pa")
@@ -108,6 +112,7 @@ export class PatientRepository {
 			const name = filters?.name?.trim();
 			const email = filters?.email?.trim();
 			const phoneNumber = filters?.phoneNumber?.trim();
+			const pesel = filters?.pesel?.trim();
 
 			if (name)
 				baseQuery.where((query) => {
@@ -115,22 +120,17 @@ export class PatientRepository {
 				});
 			if (email) baseQuery.where("pe.email", "ilike", `%${email}%`);
 			if (phoneNumber) baseQuery.where("pe.phone", "ilike", `%${phoneNumber}%`);
+			if (pesel) baseQuery.where("pe.pesel", "ilike", `%${pesel}%`);
 
 			const [patients, countResult] = await Promise.all([
-				baseQuery
-					.clone()
-					.orderBy("pa.id", "asc")
-					.offset((page - 1) * limit)
-					.limit(limit),
+				baseQuery.clone().orderBy("pa.id", "asc").offset(pagination.offset).limit(pagination.limit),
 
 				baseQuery.clone().clearSelect().clearOrder().countDistinct("pa.id as total"),
 			]);
 
 			const total = Number(countResult[0]?.total ?? 0);
-			const totalPages = Math.ceil(total / limit);
-
-			return {
-				data: patients.map((patient) => ({
+			return withPagination(
+				patients.map((patient) => ({
 					id: patient.patient_id,
 					person_id: patient.person_id,
 					created_at: patient.patient_created_at,
@@ -148,13 +148,9 @@ export class PatientRepository {
 						updated_at: patient.person_updated_at,
 					},
 				})),
-
 				total,
-				page,
-				limit,
-				totalPages,
-				hasNextPage: page < totalPages,
-			};
+				pagination,
+			);
 		} catch (err) {
 			throw new DatabaseError(err);
 		}

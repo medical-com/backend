@@ -4,6 +4,7 @@ import { DatabaseError } from "@/core/errors/database-error";
 import { Knex } from "knex";
 import { Doctor, Person } from "../types";
 import { WithPagination } from "@/types/pagination.type";
+import { getPaginationParams, withPagination } from "@/core/pagination";
 
 export class DoctorRepository {
 	async listWithPerson(
@@ -11,44 +12,45 @@ export class DoctorRepository {
 			filters?: {
 				first_name?: string;
 				last_name?: string;
+				service_id?: string;
 			};
 			page?: number;
 			limit?: number;
 		},
 		trx?: Knex.Transaction,
 	): Promise<WithPagination<Doctor & { person: Person }>> {
-		const { filters, page = 1, limit = 10 } = data;
-
-		if (!Number.isInteger(page) || page < 1) throw new DatabaseError("Page must be a positive integer");
-		if (!Number.isInteger(limit) || limit < 1) throw new DatabaseError("Limit must be a positive integer");
-		if (limit > 100) throw new DatabaseError("Limit cannot be greater than 100");
+		const { filters } = data;
+		const pagination = getPaginationParams(data);
 
 		try {
 			const baseQuery = this.doctorWithPersonQuery(trx);
 
 			if (filters?.first_name) baseQuery.where("persons.first_name", "ilike", `%${filters.first_name}%`);
 			if (filters?.last_name) baseQuery.where("persons.last_name", "ilike", `%${filters.last_name}%`);
+			if (filters?.service_id) {
+				baseQuery.whereExists(function () {
+					this.select(db.raw("1"))
+						.from("public.services as services")
+						.where("services.id", filters.service_id)
+						.whereRaw("doctors.id = ANY (services.doctor_ids)");
+				});
+			}
 
 			const [doctors, countResult] = await Promise.all([
 				baseQuery
 					.clone()
 					.orderBy("doctors.id", "asc")
-					.offset((page - 1) * limit)
-					.limit(limit),
+					.offset(pagination.offset)
+					.limit(pagination.limit),
 				baseQuery.clone().clearSelect().clearOrder().countDistinct("doctors.id as total"),
 			]);
 
 			const total = Number(countResult[0]?.total ?? 0);
-			const totalPages = Math.ceil(total / limit);
-
-			return {
-				data: doctors.map((doctor) => this.toDoctorWithPerson(doctor)),
+			return withPagination(
+				doctors.map((doctor) => this.toDoctorWithPerson(doctor)),
 				total,
-				page,
-				limit,
-				totalPages,
-				hasNextPage: page < totalPages,
-			};
+				pagination,
+			);
 		} catch (err) {
 			throw new DatabaseError(err);
 		}

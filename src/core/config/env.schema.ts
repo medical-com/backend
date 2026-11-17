@@ -6,6 +6,8 @@ export const envSchema = z.object({
 	PORT: z.coerce.number().int().min(1).max(65535).default(3000),
 	CLIENT_URL: z.url().default("http://localhost:5173"),
 
+	TIME_ZONE: z.string().trim().min(1).default("Europe/Warsaw"),
+
 	DB_HOST: z.string().trim().min(1),
 	DB_PORT: z.coerce.number().int().min(1).max(65535).default(5432),
 	DB_NAME: z.string().trim().min(1),

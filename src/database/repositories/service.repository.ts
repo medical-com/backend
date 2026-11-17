@@ -4,6 +4,7 @@ import { DatabaseError } from "@/core/errors/database-error";
 import type { WithPagination } from "@/types/pagination.type";
 import type { Knex } from "knex";
 import type { Service, ServiceCategory } from "../types";
+import { getPaginationParams, withPagination } from "@/core/pagination";
 
 export class ServiceRepository {
 	async findById(data: { id: string }, trx?: Knex.Transaction): Promise<Service | undefined> {
@@ -22,10 +23,8 @@ export class ServiceRepository {
 		},
 		trx?: Knex.Transaction,
 	): Promise<WithPagination<Service>> {
-		const { filters, page = 1, limit = 10 } = data;
-		if (!Number.isInteger(page) || page < 1) throw new DatabaseError("Page must be a positive integer");
-		if (!Number.isInteger(limit) || limit < 1) throw new DatabaseError("Limit must be a positive integer");
-		if (limit > 100) throw new DatabaseError("Limit cannot be greater than 100");
+		const { filters } = data;
+		const pagination = getPaginationParams(data);
 
 		try {
 			const query = (trx || db)<Service>("public.services");
@@ -36,14 +35,12 @@ export class ServiceRepository {
 				query
 					.clone()
 					.orderBy("name", "asc")
-					.offset((page - 1) * limit)
-					.limit(limit),
+					.offset(pagination.offset)
+					.limit(pagination.limit),
 				query.clone().clearSelect().clearOrder().count<{ total: string }>("id as total").first(),
 			]);
 			const total = Number(countResult?.total ?? 0);
-			const totalPages = Math.ceil(total / limit);
-
-			return { data: services, total, page, limit, totalPages, hasNextPage: page < totalPages };
+			return withPagination(services, total, pagination);
 		} catch (err) {
 			throw new DatabaseError(err);
 		}
