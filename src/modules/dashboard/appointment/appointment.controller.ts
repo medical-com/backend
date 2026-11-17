@@ -18,7 +18,7 @@ import {
 import { dashboardAppointmentService as service } from "./appointment.service";
 
 class DashboardAppointmentController {
-	@RequireAuth({ roles: [AccountRole.ADMIN, AccountRole.RECEPTIONIST] })
+	@RequireAuth({ roles: [AccountRole.ADMIN, AccountRole.RECEPTIONIST, AccountRole.DOCTOR] })
 	@Throttle({ limit: 30, windowMs: 1000 })
 	async listAvailableDates(
 		req: express.Request,
@@ -37,11 +37,12 @@ class DashboardAppointmentController {
 		res.status(201).json({ data: appointment });
 	}
 
-	@RequireAuth({ roles: [AccountRole.ADMIN, AccountRole.RECEPTIONIST] })
+	@RequireAuth({ roles: [AccountRole.ADMIN, AccountRole.RECEPTIONIST, AccountRole.DOCTOR] })
 	@Throttle({ limit: 30, windowMs: 1000 })
 	async list(req: express.Request, res: express.Response<DashboardAppointmentListResponse>) {
 		const data = validate(DashboardAppointmentListQuerySchema, req.query);
 		const result = await service.list({
+			account: req.account!,
 			filters: {
 				doctorId: data.doctorId,
 				serviceId: data.serviceId,
@@ -60,18 +61,18 @@ class DashboardAppointmentController {
 		res.json({ data: appointments, pagination });
 	}
 
-	@RequireAuth({ roles: [AccountRole.ADMIN, AccountRole.RECEPTIONIST] })
+	@RequireAuth({ roles: [AccountRole.ADMIN, AccountRole.RECEPTIONIST, AccountRole.DOCTOR] })
 	@Throttle({ limit: 30, windowMs: 1000 })
 	async findOne(req: express.Request, res: express.Response<DashboardAppointmentFindOneResponse>) {
 		const { id } = validate(DashboardAppointmentFindOneQuerySchema, req.query);
-		res.json(await service.findOne(id));
+		res.json(await service.findOne({ id, account: req.account! }));
 	}
 
-	@RequireAuth({ roles: [AccountRole.ADMIN, AccountRole.RECEPTIONIST] })
+	@RequireAuth({ roles: [AccountRole.ADMIN, AccountRole.RECEPTIONIST, AccountRole.DOCTOR] })
 	@Throttle({ limit: 30, windowMs: 1000 })
 	async updateStatus(req: express.Request, res: express.Response<DashboardAppointmentUpdateStatusResponse>) {
 		const { id, status } = validate(DashboardAppointmentUpdateStatusSchema, req.body);
-		const appointment = await service.updateStatus({ id, status });
+		const appointment = await service.updateStatus({ id, status, account: req.account! });
 
 		return res.json({ status: appointment.status });
 	}

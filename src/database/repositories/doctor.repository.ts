@@ -37,11 +37,7 @@ export class DoctorRepository {
 			}
 
 			const [doctors, countResult] = await Promise.all([
-				baseQuery
-					.clone()
-					.orderBy("doctors.id", "asc")
-					.offset(pagination.offset)
-					.limit(pagination.limit),
+				baseQuery.clone().orderBy("doctors.id", "asc").offset(pagination.offset).limit(pagination.limit),
 				baseQuery.clone().clearSelect().clearOrder().countDistinct("doctors.id as total"),
 			]);
 
@@ -61,6 +57,15 @@ export class DoctorRepository {
 			const doctor = await this.doctorWithPersonQuery(trx).clone().where("doctors.id", data.doctorId).first();
 			if (!doctor) throw new DatabaseError("Doctor not found");
 			return this.toDoctorWithPerson(doctor);
+		} catch (err) {
+			throw new DatabaseError(err);
+		}
+	}
+
+	async findByPersonId(data: { personId: string }, trx?: Knex.Transaction): Promise<Doctor | undefined> {
+		try {
+			const doctor = await (trx || db)<Doctor>("public.doctors").where("person_id", data.personId).first();
+			return doctor;
 		} catch (err) {
 			throw new DatabaseError(err);
 		}

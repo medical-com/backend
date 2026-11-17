@@ -7,9 +7,10 @@ import {
 	doctorScheduleRepository,
 	serviceRepository,
 	patientRepository,
+	accountRepository,
 } from "@/database/repositories";
-import { AppointmentStatus, DoctorScheduleExceptionType } from "@/database/types";
-import type { Appointment } from "@/database/types";
+import { AccountRole, AppointmentStatus, DoctorScheduleExceptionType } from "@/database/types";
+import type { Account, Appointment } from "@/database/types";
 import { calendarDate, dayEnd, dayStart, isoDayOfWeek, isBefore, plusDays, plusMinutes, withTime } from "@/core/date";
 import type { ClientAppointment, ClientAvailableDate } from "@/types/client/appointment.type";
 import type { WithPagination } from "@/types/pagination.type";
@@ -120,13 +121,22 @@ class DashboardAppointmentService {
 		});
 	}
 
-	async findOne(id: string): Promise<ClientAppointment> {
-		const appointment = await appointmentRepository.findDetailedById({ id });
+	async findOne(data: { id: string; account: Account }): Promise<ClientAppointment> {
+		const appointment = await appointmentRepository.findDetailedById({ id: data.id });
 		if (!appointment) throw new AppError("Appointment not found", 404);
+		if (data.account.role === AccountRole.DOCTOR) {
+			const account = await accountRepository.findById({ id: data.account.id });
+			if (!account) throw new AppError("Account not found", 404);
+
+			const doctor = await doctorRepository.findByPersonId({ personId: account.person_id });
+			if (!doctor) throw new AppError("Doctor not found", 404);
+			if (appointment.doctor.id !== doctor.id) throw new AppError("Appointment not found", 404);
+		}
 		return appointment;
 	}
 
 	async list(data: {
+		account: Account;
 		filters?: {
 			doctorId?: string;
 			serviceId?: string;
@@ -141,6 +151,15 @@ class DashboardAppointmentService {
 		page?: number;
 		limit?: number;
 	}): Promise<WithPagination<ClientAppointment>> {
+		if (data.account.role === AccountRole.DOCTOR) {
+			const account = await accountRepository.findById({ id: data.account.id });
+			if (!account) throw new AppError("Account not found", 404);
+
+			const doctor = await doctorRepository.findByPersonId({ personId: account.person_id });
+			if (!doctor) throw new AppError("Doctor not found", 404);
+			data.filters = { ...data.filters, doctorId: doctor.id };
+		}
+
 		return appointmentRepository.listDetailed(data);
 	}
 
@@ -263,9 +282,17 @@ class DashboardAppointmentService {
 		return availableDates;
 	}
 
-	async updateStatus(data: { id: string; status: AppointmentStatus }): Promise<ClientAppointment> {
+	async updateStatus(data: { id: string; status: AppointmentStatus; account: Account }): Promise<ClientAppointment> {
 		const appointment = await appointmentRepository.findById({ id: data.id });
 		if (!appointment) throw new AppError("Appointment not found", 404);
+		if (data.account.role === AccountRole.DOCTOR) {
+			const account = await accountRepository.findById({ id: data.account.id });
+			if (!account) throw new AppError("Account not found", 404);
+
+			const doctor = await doctorRepository.findByPersonId({ personId: account.person_id });
+			if (!doctor) throw new AppError("Doctor not found", 404);
+			if (appointment.doctor_id !== doctor.id) throw new AppError("Appointment not found", 404);
+		}
 
 		await appointmentRepository.updateStatus({ id: data.id, status: data.status });
 
