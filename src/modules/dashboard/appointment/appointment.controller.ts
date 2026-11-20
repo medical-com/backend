@@ -14,6 +14,12 @@ import {
 	type DashboardAppointmentListAvailableDatesResponse,
 	DashboardAppointmentUpdateStatusSchema,
 	DashboardAppointmentUpdateStatusResponse,
+	DashboardAppointmentMedicalRecordCreateSchema,
+	DashboardAppointmentMedicalRecordUpdateSchema,
+	DashboardAppointmentMedicalRecordFindOneQuerySchema,
+	type DashboardAppointmentMedicalRecordResponse,
+	DashboardAppointmentMedicalRecordListQuerySchema,
+	type DashboardAppointmentMedicalRecordListResponse,
 } from "./types/appointment.schema";
 import { dashboardAppointmentService as service } from "./appointment.service";
 
@@ -75,6 +81,47 @@ class DashboardAppointmentController {
 		const appointment = await service.updateStatus({ id, status, account: req.account! });
 
 		return res.json({ status: appointment.status });
+	}
+
+	@RequireAuth({ roles: [AccountRole.ADMIN, AccountRole.DOCTOR] })
+	@Throttle({ limit: 30, windowMs: 1000 })
+	async createMedicalRecord(req: express.Request, res: express.Response<DashboardAppointmentMedicalRecordResponse>) {
+		const data = validate(DashboardAppointmentMedicalRecordCreateSchema, req.body);
+		res.status(201).json(await service.createMedicalRecord({ ...data, account: req.account! }));
+	}
+
+	@RequireAuth({ roles: [AccountRole.ADMIN, AccountRole.DOCTOR] })
+	@Throttle({ limit: 30, windowMs: 1000 })
+	async updateMedicalRecord(req: express.Request, res: express.Response<DashboardAppointmentMedicalRecordResponse>) {
+		const data = validate(DashboardAppointmentMedicalRecordUpdateSchema, req.body);
+		res.json(await service.updateMedicalRecord({ ...data, account: req.account! }));
+	}
+
+	@RequireAuth({ roles: [AccountRole.ADMIN, AccountRole.DOCTOR] })
+	@Throttle({ limit: 30, windowMs: 1000 })
+	async findOneMedicalRecord(req: express.Request, res: express.Response<DashboardAppointmentMedicalRecordResponse>) {
+		const data = validate(DashboardAppointmentMedicalRecordFindOneQuerySchema, req.query);
+		res.json(await service.findOneMedicalRecord({ ...data, account: req.account! }));
+	}
+
+	@RequireAuth({ roles: [AccountRole.ADMIN, AccountRole.DOCTOR] })
+	@Throttle({ limit: 30, windowMs: 1000 })
+	async listMedicalRecords(
+		req: express.Request,
+		res: express.Response<DashboardAppointmentMedicalRecordListResponse>,
+	) {
+		const data = validate(DashboardAppointmentMedicalRecordListQuerySchema, req.query);
+		const result = await service.listMedicalRecords({ ...data, account: req.account! });
+		res.json({
+			data: result.data,
+			pagination: {
+				total: result.total,
+				page: result.page,
+				limit: result.limit,
+				totalPages: result.totalPages,
+				hasNextPage: result.hasNextPage,
+			},
+		});
 	}
 }
 

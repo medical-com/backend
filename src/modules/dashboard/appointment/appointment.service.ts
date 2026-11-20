@@ -10,7 +10,7 @@ import {
 	accountRepository,
 } from "@/database/repositories";
 import { AccountRole, AppointmentStatus, DoctorScheduleExceptionType } from "@/database/types";
-import type { Account, Appointment } from "@/database/types";
+import type { Account, Appointment, AppointmentMedicalRecord } from "@/database/types";
 import { calendarDate, dayEnd, dayStart, isoDayOfWeek, isBefore, plusDays, plusMinutes, withTime } from "@/core/date";
 import type { ClientAppointment, ClientAvailableDate } from "@/types/client/appointment.type";
 import type { WithPagination } from "@/types/pagination.type";
@@ -282,6 +282,87 @@ class DashboardAppointmentService {
 		return availableDates;
 	}
 
+	async createMedicalRecord(data: {
+		appointmentId: string;
+		diagnosis: string;
+		prescription: string;
+		account: Account;
+	}): Promise<AppointmentMedicalRecord> {
+		const appointment = await this.ensureAppointmentAccess(data.appointmentId, data.account);
+		if (!appointment) throw new AppError("Appointment not found", 404);
+
+		const existing = await appointmentRepository.findMedicalRecordByAppointmentId({
+			appointmentId: data.appointmentId,
+		});
+		if (existing) throw new AppError("Medical record already exists for this appointment", 409);
+		if (isBefore(new Date(), appointment.start_at))
+			throw new AppError("Cannot create medical record for an appointment that has not started", 400);
+		if (appointment.status !== AppointmentStatus.CONFIRMED)
+			throw new AppError("Cannot create medical record for an appointment that is not completed", 400);
+
+		return appointmentRepository.insertMedicalRecord({
+			appointment_id: data.appointmentId,
+			diagnosis: data.diagnosis,
+			prescription: data.prescription,
+		});
+	}
+
+	async updateMedicalRecord(data: {
+		id: string;
+		diagnosis?: string;
+		prescription?: string;
+		account: Account;
+	}): Promise<AppointmentMedicalRecord> {
+		const record = await appointmentRepository.findMedicalRecordById({ id: data.id });
+		if (!record) throw new AppError("Medical record not found", 404);
+
+		await this.ensureAppointmentAccess(record.appointment_id, data.account);
+
+		return appointmentRepository.updateMedicalRecord({
+			id: record.id,
+			update: Object.fromEntries(
+				Object.entries({
+					diagnosis: data.diagnosis,
+					prescription: data.prescription,
+				}).filter(([, value]) => value !== undefined),
+			),
+		});
+	}
+
+	async findOneMedicalRecord(data: { appointmentId: string; account: Account }): Promise<AppointmentMedicalRecord> {
+		await this.ensureAppointmentAccess(data.appointmentId, data.account);
+
+		const record = await appointmentRepository.findMedicalRecordByAppointmentId({
+			appointmentId: data.appointmentId,
+		});
+		if (!record) throw new AppError("Medical record not found", 404);
+
+		return record;
+	}
+
+	async listMedicalRecords(data: {
+		account: Account;
+		page?: number;
+		limit?: number;
+	}): Promise<WithPagination<AppointmentMedicalRecord>> {
+		let doctorId: string | undefined;
+
+		if (data.account.role === AccountRole.DOCTOR) {
+			const account = await accountRepository.findById({ id: data.account.id });
+			if (!account) throw new AppError("Account not found", 404);
+
+			const doctor = await doctorRepository.findByPersonId({ personId: account.person_id });
+			if (!doctor) throw new AppError("Doctor not found", 404);
+			doctorId = doctor.id;
+		}
+
+		return appointmentRepository.listMedicalRecords({
+			doctorId,
+			page: data.page,
+			limit: data.limit,
+		});
+	}
+
 	async updateStatus(data: { id: string; status: AppointmentStatus; account: Account }): Promise<ClientAppointment> {
 		const appointment = await appointmentRepository.findById({ id: data.id });
 		if (!appointment) throw new AppError("Appointment not found", 404);
@@ -303,6 +384,24 @@ class DashboardAppointmentService {
 			await appointmentReminderQueue.cancel({ appointmentId: data.id });
 
 		return updatedAppointment;
+	}
+
+	private async ensureAppointmentAccess(appointmentId: string, account: Account): Promise<Appointment | null> {
+		const appointment = await appointmentRepository.findById({ id: appointmentId });
+		if (!appointment) throw new AppError("Appointment not found", 404);
+
+		if (account.role === AccountRole.DOCTOR) {
+			const accountRow = await accountRepository.findById({ id: account.id });
+			if (!accountRow) throw new AppError("Account not found", 404);
+
+			const doctor = await doctorRepository.findByPersonId({ personId: accountRow.person_id });
+			if (!doctor) throw new AppError("Doctor not found", 404);
+			if (appointment.doctor_id !== doctor.id) throw new AppError("Appointment not found", 404);
+
+			return appointment;
+		}
+
+		return null;
 	}
 
 	private async sendAppointmentCreatedEmail(data: { id: string }, trx?: Knex.Transaction) {

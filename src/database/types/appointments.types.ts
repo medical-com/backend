@@ -1,3 +1,4 @@
+//public.appointments
 export enum AppointmentStatus {
 	SCHEDULED = "scheduled",
 	CONFIRMED = "confirmed",
@@ -15,6 +16,15 @@ export interface Appointment {
 	end_at: Date;
 	status: AppointmentStatus;
 	notes?: string | null;
+	created_at: Date;
+	updated_at: Date;
+}
+
+export interface AppointmentMedicalRecord {
+	id: string;
+	appointment_id: string;
+	diagnosis: string;
+	prescription: string;
 	created_at: Date;
 	updated_at: Date;
 }
