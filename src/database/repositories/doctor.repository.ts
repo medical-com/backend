@@ -71,6 +71,15 @@ export class DoctorRepository {
 		}
 	}
 
+	async findById(data: { doctorId: string }, trx?: Knex.Transaction): Promise<Doctor | undefined> {
+		try {
+			const doctor = await (trx || db)<Doctor>("public.doctors").where("id", data.doctorId).first();
+			return doctor;
+		} catch (err) {
+			throw new DatabaseError(err);
+		}
+	}
+
 	async findByLicenseNumber(data: { licenseNumber: string }, trx?: Knex.Transaction): Promise<Doctor | undefined> {
 		try {
 			const doctor = await (trx || db)<Doctor>("public.doctors")

@@ -26,6 +26,7 @@ import { sendAppointmentCreatedEmail } from "@/core/mail/appointment.mail";
 import { appointmentReminderQueue } from "./jobs/reminder/reminder.queue";
 import { subDays } from "date-fns";
 import type { Knex } from "knex";
+import { appointmentsGateway } from "./appointment.gateway";
 
 const MAX_DAYS_IN_ADVANCE = 7;
 const APPOINTMENT_QUERY_LIMIT = 100;
@@ -384,6 +385,19 @@ class DashboardAppointmentService {
 
 		if (data.status === AppointmentStatus.CANCELLED)
 			await appointmentReminderQueue.cancel({ appointmentId: data.id });
+
+		const doctor = await doctorRepository.findById({ doctorId: appointment.doctor_id });
+		const doctorAccount = doctor
+			? await accountRepository.findByPersonId({ personId: doctor.person_id })
+			: undefined;
+
+		if (doctorAccount) {
+			appointmentsGateway.statusChanged({
+				accountId: doctorAccount.id,
+				appointmentId: data.id,
+				status: updatedAppointment.status,
+			});
+		}
 
 		return updatedAppointment;
 	}

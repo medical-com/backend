@@ -21,6 +21,14 @@ export class AccountRepository {
 		}
 	}
 
+	async findByPersonId(data: { personId: string }, trx?: Knex.Transaction): Promise<Account | undefined> {
+		try {
+			return await (trx || db)<Account>("public.accounts").select("*").where({ person_id: data.personId }).first();
+		} catch (err) {
+			throw new DatabaseError(err);
+		}
+	}
+
 	async findWithPerson(data: { accountId: string }, trx?: Knex.Transaction): Promise<Account & { person: Person }> {
 		const account = await (trx || db)("accounts as a")
 			.select(

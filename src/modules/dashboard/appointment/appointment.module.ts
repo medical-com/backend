@@ -8,7 +8,7 @@ import { dashboardAppointmentController as controller } from "./appointment.cont
 const router = express.Router() as TypedRouter<DashboardAppointmentPaths>;
 
 export default class DashboardAppointmentModule {
-	constructor(readonly modules: DashboardModule) {
+	constructor(readonly dashboardModules: DashboardModule) {
 		router.get(
 			"/dashboard/appointment/available-dates",
 			async (req, res) => await controller.listAvailableDates(req, res),
@@ -37,6 +37,6 @@ export default class DashboardAppointmentModule {
 			async (req, res) => await controller.listMedicalRecords(req, res),
 		);
 
-		this.modules.useRouter(router);
+		this.dashboardModules.useRouter(router);
 	}
 }
