@@ -329,15 +329,17 @@ class DashboardAppointmentService {
 		});
 	}
 
-	async findOneMedicalRecord(data: { appointmentId: string; account: Account }): Promise<AppointmentMedicalRecord> {
+	async findOneMedicalRecord(data: {
+		appointmentId: string;
+		account: Account;
+	}): Promise<AppointmentMedicalRecord | null> {
 		await this.ensureAppointmentAccess(data.appointmentId, data.account);
 
 		const record = await appointmentRepository.findMedicalRecordByAppointmentId({
 			appointmentId: data.appointmentId,
 		});
-		if (!record) throw new AppError("Medical record not found", 404);
 
-		return record;
+		return record ?? null;
 	}
 
 	async listMedicalRecords(data: {

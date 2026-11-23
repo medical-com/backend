@@ -2,7 +2,8 @@ import db from "..";
 
 import { DatabaseError } from "@/core/errors/database-error";
 import type { Knex } from "knex";
-import type { Appointment, AppointmentMedicalRecord, AppointmentStatus } from "../types";
+import { AppointmentStatus } from "../types";
+import type { Appointment, AppointmentMedicalRecord } from "../types";
 import type { ClientAppointment } from "@/types/client/appointment.type";
 import type { WithPagination } from "@/types/pagination.type";
 import { getPaginationParams, withPagination } from "@/core/pagination";
@@ -218,6 +219,21 @@ export class AppointmentRepository {
 				.where("id", data.id)
 				.update({ status: data.status, updated_at: new Date() });
 			if (updatedRows === 0) throw new DatabaseError("No appointment found to update");
+		} catch (err) {
+			throw new DatabaseError(err);
+		}
+	}
+
+	async cancelPastAppointments(data: { pastAt: Date }, trx?: Knex.Transaction): Promise<number> {
+		try {
+			return await (trx ?? db)<Appointment>("public.appointments")
+				.where("end_at", "<", data.pastAt)
+				.whereNot("status", AppointmentStatus.COMPLETED)
+				.update({
+					status: AppointmentStatus.CANCELLED,
+					updated_at: new Date(),
+					notes: "Automatically cancelled due to being in the past",
+				});
 		} catch (err) {
 			throw new DatabaseError(err);
 		}

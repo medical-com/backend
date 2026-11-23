@@ -99,7 +99,7 @@ export const DashboardAppointmentMedicalRecordFindOneQuerySchema = z.strictObjec
 export type DashboardAppointmentMedicalRecordFindOneQuery = z.infer<
 	typeof DashboardAppointmentMedicalRecordFindOneQuerySchema
 >;
-export type DashboardAppointmentMedicalRecordResponse = AppointmentMedicalRecord;
+export type DashboardAppointmentMedicalRecordResponse = AppointmentMedicalRecord | null;
 
 export const DashboardAppointmentMedicalRecordListQuerySchema = z.strictObject({
 	page: z.coerce.number().int().min(1).optional(),
