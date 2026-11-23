@@ -7,8 +7,6 @@ export const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
 	const statusCode = isAppError ? error.statusCode : 500;
 	const message = isAppError && error.isOperational ? error.message : "Internal server error";
 
-	console.error(error);
-
 	res.status(statusCode).json({
 		error: {
 			message,

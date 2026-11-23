@@ -2,12 +2,105 @@ import db from "..";
 
 import { DatabaseError } from "@/core/errors/database-error";
 import type { Knex } from "knex";
-import type { Appointment, AppointmentStatus } from "../types";
+import { AppointmentStatus } from "../types";
+import type { Appointment, AppointmentMedicalRecord } from "../types";
 import type { ClientAppointment } from "@/types/client/appointment.type";
 import type { WithPagination } from "@/types/pagination.type";
 import { getPaginationParams, withPagination } from "@/core/pagination";
 
 export class AppointmentRepository {
+	async findMedicalRecordById(
+		data: { id: string },
+		trx?: Knex.Transaction,
+	): Promise<AppointmentMedicalRecord | undefined> {
+		try {
+			return await (trx ?? db)<AppointmentMedicalRecord>("public.appointment_medical_records")
+				.where("id", data.id)
+				.first();
+		} catch (err) {
+			throw new DatabaseError(err);
+		}
+	}
+
+	async findMedicalRecordByAppointmentId(
+		data: { appointmentId: string },
+		trx?: Knex.Transaction,
+	): Promise<AppointmentMedicalRecord | undefined> {
+		try {
+			return await (trx ?? db)<AppointmentMedicalRecord>("public.appointment_medical_records")
+				.where("appointment_id", data.appointmentId)
+				.first();
+		} catch (err) {
+			throw new DatabaseError(err);
+		}
+	}
+
+	async listMedicalRecords(
+		data: { doctorId?: string; page?: number; limit?: number },
+		trx?: Knex.Transaction,
+	): Promise<WithPagination<AppointmentMedicalRecord>> {
+		const pagination = getPaginationParams(data, 100);
+
+		try {
+			const query = (trx ?? db)<AppointmentMedicalRecord>(
+				"public.appointment_medical_records as medical_records",
+			).select("medical_records.*");
+
+			if (data.doctorId) {
+				query
+					.join("public.appointments as appointments", "appointments.id", "medical_records.appointment_id")
+					.where("appointments.doctor_id", data.doctorId);
+			}
+
+			const [records, countResult] = await Promise.all([
+				query
+					.clone()
+					.orderBy("medical_records.created_at", "desc")
+					.offset(pagination.offset)
+					.limit(pagination.limit),
+				query.clone().clearSelect().clearOrder().countDistinct("medical_records.id as total"),
+			]);
+			const total = Number((countResult[0] as { total?: string | number } | undefined)?.total ?? 0);
+			return withPagination(records, total, pagination);
+		} catch (err) {
+			throw new DatabaseError(err);
+		}
+	}
+
+	async insertMedicalRecord(
+		data: Omit<AppointmentMedicalRecord, "id" | "created_at" | "updated_at">,
+		trx?: Knex.Transaction,
+	): Promise<AppointmentMedicalRecord> {
+		try {
+			const [record] = await (trx ?? db)<AppointmentMedicalRecord>("public.appointment_medical_records")
+				.insert(data)
+				.returning("*");
+			if (!record) throw new DatabaseError("Failed to insert appointment medical record");
+			return record;
+		} catch (err) {
+			throw new DatabaseError(err);
+		}
+	}
+
+	async updateMedicalRecord(
+		data: {
+			id: string;
+			update: Partial<Pick<AppointmentMedicalRecord, "diagnosis" | "prescription">>;
+		},
+		trx?: Knex.Transaction,
+	): Promise<AppointmentMedicalRecord> {
+		try {
+			const [record] = await (trx ?? db)<AppointmentMedicalRecord>("public.appointment_medical_records")
+				.where("id", data.id)
+				.update({ ...data.update, updated_at: new Date() })
+				.returning("*");
+			if (!record) throw new DatabaseError("Failed to update appointment medical record");
+			return record;
+		} catch (err) {
+			throw new DatabaseError(err);
+		}
+	}
+
 	async findById(data: { id: string }, trx?: Knex.Transaction): Promise<Appointment | undefined> {
 		try {
 			return await (trx ?? db)<Appointment>("public.appointments").where("id", data.id).first();
@@ -126,6 +219,21 @@ export class AppointmentRepository {
 				.where("id", data.id)
 				.update({ status: data.status, updated_at: new Date() });
 			if (updatedRows === 0) throw new DatabaseError("No appointment found to update");
+		} catch (err) {
+			throw new DatabaseError(err);
+		}
+	}
+
+	async cancelPastAppointments(data: { pastAt: Date }, trx?: Knex.Transaction): Promise<number> {
+		try {
+			return await (trx ?? db)<Appointment>("public.appointments")
+				.where("end_at", "<", data.pastAt)
+				.whereNot("status", AppointmentStatus.COMPLETED)
+				.update({
+					status: AppointmentStatus.CANCELLED,
+					updated_at: new Date(),
+					notes: "Automatically cancelled due to being in the past",
+				});
 		} catch (err) {
 			throw new DatabaseError(err);
 		}

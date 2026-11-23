@@ -1,5 +1,6 @@
 import { AppointmentStatus } from "@/database/types/appointments.types";
 import type { ClientAppointment, ClientAvailableDate } from "@/types/client/appointment.type";
+import type { AppointmentMedicalRecord } from "@/database/types";
 import type { WithPaginationResponse } from "@/types/pagination.type";
 import { calendarDateSchema, emailSchema, nameSchema, peselSchema, phoneNumberSchema } from "@/types/zod.types";
 import { z } from "zod";
@@ -73,3 +74,38 @@ export const DashboardAppointmentUpdateStatusSchema = z.object({
 });
 export type DashboardAppointmentUpdateStatus = z.infer<typeof DashboardAppointmentUpdateStatusSchema>;
 export type DashboardAppointmentUpdateStatusResponse = { status: AppointmentStatus };
+
+export const DashboardAppointmentMedicalRecordCreateSchema = z.strictObject({
+	appointmentId: z.uuid(),
+	diagnosis: z.string().trim().min(1).max(5000),
+	prescription: z.string().trim().max(5000).default(""),
+});
+export type DashboardAppointmentMedicalRecordCreate = z.infer<typeof DashboardAppointmentMedicalRecordCreateSchema>;
+
+export const DashboardAppointmentMedicalRecordUpdateSchema = z
+	.strictObject({
+		id: z.uuid(),
+		diagnosis: z.string().trim().min(1).max(5000).optional(),
+		prescription: z.string().trim().max(5000).optional(),
+	})
+	.refine((data) => data.diagnosis !== undefined || data.prescription !== undefined, {
+		message: "At least one medical record field must be provided",
+	});
+export type DashboardAppointmentMedicalRecordUpdate = z.infer<typeof DashboardAppointmentMedicalRecordUpdateSchema>;
+
+export const DashboardAppointmentMedicalRecordFindOneQuerySchema = z.strictObject({
+	appointmentId: z.uuid(),
+});
+export type DashboardAppointmentMedicalRecordFindOneQuery = z.infer<
+	typeof DashboardAppointmentMedicalRecordFindOneQuerySchema
+>;
+export type DashboardAppointmentMedicalRecordResponse = AppointmentMedicalRecord | null;
+
+export const DashboardAppointmentMedicalRecordListQuerySchema = z.strictObject({
+	page: z.coerce.number().int().min(1).optional(),
+	limit: z.coerce.number().int().min(1).max(100).optional(),
+});
+export type DashboardAppointmentMedicalRecordListQuery = z.infer<
+	typeof DashboardAppointmentMedicalRecordListQuerySchema
+>;
+export type DashboardAppointmentMedicalRecordListResponse = WithPaginationResponse<AppointmentMedicalRecord>;
