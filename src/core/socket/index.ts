@@ -17,10 +17,10 @@ export const createSocketServer = (httpServer: HttpServer) => {
 
 	registerSocketAuth(io);
 
-	io.on("connection", (socket) => {
+	io.on("connection", async (socket) => {
 		const account = socket.data.account;
 
-		socket.join(`account:${account.id}`);
+		await socket.join(`account:${account.id}`);
 		logger.info(`Account ${account.id} connected`);
 
 		socket.on("disconnect", () => {

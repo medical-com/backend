@@ -12,7 +12,7 @@ export class AppointmentCancellationWorker {
 
 		workerLogger.info("Appointment cancellation worker started");
 
-		this.process();
+		void this.process();
 	}
 
 	async process(): Promise<void> {
