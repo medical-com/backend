@@ -28,6 +28,14 @@ export type ClientAppointment = {
 	};
 };
 
+export type ClientAppointmentDetailed = ClientAppointment & {
+	medicalRecord?: {
+		id: string;
+		diagnosis: string | null;
+		prescription: string | null;
+	};
+};
+
 export type ClientAvailableDate = {
 	id: string;
 	date: string;

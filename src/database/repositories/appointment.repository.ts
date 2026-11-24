@@ -123,8 +123,10 @@ export class AppointmentRepository {
 			filters?: {
 				doctorId?: string;
 				serviceId?: string;
+				serviceName?: string;
 				from?: Date;
 				to?: Date;
+				patientId?: string;
 				patientName?: string;
 				patientEmail?: string;
 				patientPhone?: string;
@@ -143,9 +145,11 @@ export class AppointmentRepository {
 			const query = this.detailedQuery(trx);
 			if (filters?.doctorId) query.where("appointments.doctor_id", filters.doctorId);
 			if (filters?.serviceId) query.where("appointments.service_id", filters.serviceId);
+			if (filters?.serviceName) query.where("services.name", "ilike", `%${filters.serviceName}%`);
 			if (filters?.from) query.where("appointments.start_at", ">=", filters.from);
 			if (filters?.to) query.where("appointments.start_at", "<", filters.to);
 			if (filters?.status) query.where("appointments.status", filters.status);
+			if (filters?.patientId) query.where("appointments.patient_id", filters.patientId);
 			if (filters?.patientName) {
 				query.whereRaw("concat_ws(' ', patient_person.first_name, patient_person.last_name) ilike ?", [
 					`%${filters.patientName}%`,
@@ -213,11 +217,14 @@ export class AppointmentRepository {
 		}
 	}
 
-	async updateStatus(data: { id: string; status: AppointmentStatus }, trx?: Knex.Transaction): Promise<void> {
+	async updateStatus(
+		data: { id: string; status: AppointmentStatus; notes?: string },
+		trx?: Knex.Transaction,
+	): Promise<void> {
 		try {
 			const updatedRows = await (trx ?? db)<Appointment>("public.appointments")
 				.where("id", data.id)
-				.update({ status: data.status, updated_at: new Date() });
+				.update({ status: data.status, updated_at: new Date(), notes: data.notes });
 			if (updatedRows === 0) throw new DatabaseError("No appointment found to update");
 		} catch (err) {
 			throw new DatabaseError(err);
