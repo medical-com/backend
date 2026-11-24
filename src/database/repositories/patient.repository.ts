@@ -20,6 +20,26 @@ export class PatientRepository {
 		}
 	}
 
+	async findById(data: { patientId: string }, trx?: Knex.Transaction): Promise<Patient | null> {
+		try {
+			const patient = await (trx || db)<Patient>("public.patients").where({ id: data.patientId }).first();
+			return patient || null;
+		} catch (err) {
+			throw new DatabaseError(err);
+		}
+	}
+
+	async findByPersonId(data: { personId: string }, trx?: Knex.Transaction): Promise<Patient | null> {
+		try {
+			const patient = await (trx || db)<Patient>("public.patients")
+				.where({ person_id: data.personId })
+				.first();
+			return patient || null;
+		} catch (err) {
+			throw new DatabaseError(err);
+		}
+	}
+
 	async findWithPerson(
 		data: { id: string | null },
 		trx?: Knex.Transaction,
