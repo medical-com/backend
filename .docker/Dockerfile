@@ -36,8 +36,6 @@ COPY --from=builder --chown=node:node /app/src ./src
 COPY --from=builder --chown=node:node /app/package.json ./package.json
 COPY --from=builder --chown=node:node /app/tsconfig.json ./tsconfig.json
 
-RUN mkdir -p /app/logs && chown node:node /app/logs
-
 USER node
 
 EXPOSE 3000

@@ -1,0 +1,89 @@
+name: medical-prod
+
+x-backend: &backend-common
+    image: ghcr.io/medical-com/backend:${IMAGE_TAG:-latest}
+    env_file:
+        - .env
+    environment:
+        NODE_ENV: production
+        DB_HOST: postgres
+        DB_PORT: 5432
+        REDIS_URL: redis://redis:6379
+    networks:
+        - medical
+
+services:
+    backend:
+        <<: *backend-common
+        restart: unless-stopped
+        command: ["node", "dist/index.js"]
+        ports:
+            - "127.0.0.1:3000:3000"
+        depends_on:
+            postgres:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+            migrator:
+                condition: service_completed_successfully
+
+    worker:
+        <<: *backend-common
+        restart: unless-stopped
+        command: ["node", "dist/worker.js"]
+        depends_on:
+            postgres:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+            migrator:
+                condition: service_completed_successfully
+
+    migrator:
+        <<: *backend-common
+        restart: "no"
+        command: ["npm", "run", "knex:migrate:latest"]
+        depends_on:
+            postgres:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+
+    postgres:
+        image: postgres:17-alpine
+        restart: unless-stopped
+        environment:
+            POSTGRES_DB: ${DB_NAME:?DB_NAME is required}
+            POSTGRES_USER: ${DB_USER:?DB_USER is required}
+            POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+        volumes:
+            - postgres_data:/var/lib/postgresql/data
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+            interval: 5s
+            timeout: 5s
+            retries: 10
+        networks:
+            - medical
+
+    redis:
+        image: redis:7-alpine
+        restart: unless-stopped
+        command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
+        volumes:
+            - redis_data:/data
+        healthcheck:
+            test: ["CMD", "redis-cli", "ping"]
+            interval: 5s
+            timeout: 5s
+            retries: 10
+        networks:
+            - medical
+
+volumes:
+    postgres_data:
+    redis_data:
+
+networks:
+    medical:
+        driver: bridge

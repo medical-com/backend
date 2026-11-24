@@ -1,6 +1,5 @@
 import { appendFileSync, mkdirSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
 export type LogLevel = "TRACE" | "DEBUG" | "INFO" | "WARN" | "ERROR" | "FATAL";
 
@@ -14,11 +13,17 @@ export interface Logger {
 }
 
 export class FileLogger implements Logger {
-	private readonly filePath: string;
+	private readonly filePath: string | undefined;
+	private readonly fileName: string;
 
 	constructor(fileName: string) {
-		const currentDir = dirname(fileURLToPath(import.meta.url));
-		const logsDir = join(currentDir, "../../../logs");
+		this.fileName = fileName;
+
+		if (process.env.NODE_ENV === "production") {
+			return;
+		}
+
+		const logsDir = join(process.cwd(), "logs");
 
 		mkdirSync(logsDir, { recursive: true });
 
@@ -52,6 +57,23 @@ export class FileLogger implements Logger {
 	private write(level: LogLevel, message: string, data?: unknown): void {
 		const timestamp = new Date().toISOString();
 
+		if (this.filePath === undefined) {
+			const line = JSON.stringify({
+				timestamp,
+				level,
+				logger: this.fileName,
+				message,
+			});
+
+			if (level === "WARN" || level === "ERROR" || level === "FATAL") {
+				process.stderr.write(`${line}\n`);
+			} else {
+				process.stdout.write(`${line}\n`);
+			}
+
+			return;
+		}
+
 		const extra = data !== undefined ? ` ${this.stringify(data)}` : "";
 
 		const line = `[${timestamp}] [${level}] ${message}${extra}\n`;
@@ -69,7 +91,7 @@ export class FileLogger implements Logger {
 		}
 
 		try {
-			return JSON.stringify(data);
+			return JSON.stringify(data) ?? "[Unable to serialize log data]";
 		} catch {
 			return "[Unable to serialize log data]";
 		}
