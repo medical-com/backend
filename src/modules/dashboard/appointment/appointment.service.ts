@@ -26,7 +26,7 @@ import { sendAppointmentCreatedEmail } from "@/core/mail/appointment.mail";
 import { appointmentReminderQueue } from "./jobs/reminder/reminder.queue";
 import { subDays } from "date-fns";
 import type { Knex } from "knex";
-import { appointmentsGateway } from "./appointment.gateway";
+import { dashboardAppointmentsGateway } from "./appointment.gateway";
 
 const MAX_DAYS_IN_ADVANCE = 7;
 const APPOINTMENT_QUERY_LIMIT = 100;
@@ -392,7 +392,7 @@ class DashboardAppointmentService {
 			: undefined;
 
 		if (doctorAccount) {
-			appointmentsGateway.statusChanged({
+			dashboardAppointmentsGateway.statusChanged({
 				accountId: doctorAccount.id,
 				appointmentId: data.id,
 				status: updatedAppointment.status,

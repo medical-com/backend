@@ -16,6 +16,9 @@ export const envSchema = z.object({
 
 	REDIS_URL: z.url().default("redis://localhost:6379"),
 
+	BULL_BOARD_USERNAME: z.string().trim().min(1).optional(),
+	BULL_BOARD_PASSWORD: z.string().min(16).optional(),
+
 	MAIL_SEND_DISABLED: z
 		.enum(["true", "false"])
 		.default("false")
