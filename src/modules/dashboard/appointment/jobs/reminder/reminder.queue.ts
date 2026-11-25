@@ -40,6 +40,10 @@ class AppointmentReminderQueue {
 
 		return removed === 1;
 	}
+
+	getQueue() {
+		return this.queue;
+	}
 }
 
 export const appointmentReminderQueue = new AppointmentReminderQueue();

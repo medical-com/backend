@@ -47,4 +47,9 @@ export const config = {
 	redis: {
 		url: env.REDIS_URL,
 	},
+
+	bullBoard: {
+		username: env.BULL_BOARD_USERNAME,
+		password: env.BULL_BOARD_PASSWORD,
+	},
 } as const;

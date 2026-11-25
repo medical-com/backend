@@ -12,10 +12,14 @@ import { errorHandler } from "@/core/middleware/error-handler";
 import { notFoundHandler } from "@/core/middleware/not-found-handler";
 import { createSocketServer } from "@/core/socket";
 import { socketManager } from "@/core/socket/socket-manager";
+import { setupBullBoard } from "@/core/mq/bull-board";
 
 const app = express();
 
 app.use(helmet());
+
+setupBullBoard(app);
+
 app.use(cors());
 app.use(express.json());
 app.use(cookieParser());
