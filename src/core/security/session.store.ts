@@ -37,3 +37,18 @@ export async function getSession(sessionId: string): Promise<Session | undefined
 export async function destroySession(sessionId: string): Promise<void> {
 	await redis.del(`${SESSION_KEY_PREFIX}${sessionId}`);
 }
+
+export async function destroyAllSessionsForUser(userId: string): Promise<void> {
+	const keys = await redis.keys(`${SESSION_KEY_PREFIX}*`);
+	const pipeline = redis.pipeline();
+
+	for (const key of keys) {
+		const raw = await redis.get(key);
+		if (!raw) continue;
+
+		const session: Session = JSON.parse(raw);
+		if (session.userId === userId) pipeline.del(key);
+	}
+
+	await pipeline.exec();
+}

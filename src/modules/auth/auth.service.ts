@@ -4,7 +4,7 @@ import db from "@/database";
 
 import { AppError } from "@/core/errors/app-error";
 import { hashPassword, verifyPassword } from "@/core/security/password";
-import { createSession, destroySession } from "@/core/security/session.store";
+import { createSession, destroyAllSessionsForUser, destroySession } from "@/core/security/session.store";
 import { AccountRole, AccountStatus } from "@/database/types";
 import type { ClientAccount } from "@/types/client/account.type";
 import { accountRepository, patientRepository } from "@/database/repositories";
@@ -171,6 +171,8 @@ export default class AuthService {
 
 		const passwordHash = await hashPassword(data.password);
 		const result = await accountRepository.updatePassword({ id: account.id, passwordHash });
+
+		await destroyAllSessionsForUser(account.id);
 
 		return !!result;
 	}
