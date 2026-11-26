@@ -10,12 +10,16 @@ import { createServer } from "http";
 import { attachUser } from "@/core/middleware/attach-user";
 import { errorHandler } from "@/core/middleware/error-handler";
 import { notFoundHandler } from "@/core/middleware/not-found-handler";
+import { attachRequestContext } from "@/core/middleware/request-context";
 import { createSocketServer } from "@/core/socket";
 import { socketManager } from "@/core/socket/socket-manager";
 import { setupBullBoard } from "@/core/mq/bull-board";
 
 const app = express();
 
+app.set("trust proxy", 1);
+
+app.use(attachRequestContext);
 app.use(helmet());
 
 setupBullBoard(app);
